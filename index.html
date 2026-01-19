@@ -65,14 +65,19 @@
         scale: 2, 
     });
 
-    // 2. LOAD ASSETS (Make sure these exist in your GitHub!)
+    // --- CONFIGURATION ---
+    // If your images are still huge, change this number to 0.05 or 0.1
+    // If your images are already small (32x32), keep this at 1
+    const SPRITE_SCALE = 1; 
+
+    // 2. LOAD ASSETS
     loadSprite("hero", "hero.png");
     loadSprite("wall", "wall.png");
     loadSprite("floor", "floor.png");
     loadSprite("enemy", "enemy.png");
     loadSprite("boss", "boss.png");
-    loadSprite("npc", "npc.png");       // NEW
-    loadSprite("stairs", "stairs.png"); // NEW
+    loadSprite("npc", "npc.png");       
+    loadSprite("stairs", "stairs.png"); 
 
     // 3. DEFINE LEVELS
     const levels = [
@@ -80,12 +85,12 @@
         [
             "#####################",
             "#...................#",
-            "#.N.......#.........#", // N = NPC
-            "#.........#....1....#", // 1 = Enemy
+            "#.N.......#.........#", 
+            "#.........#....1....#", 
             "#...#...............#",
-            "#...#........@......#", // @ = Hero
+            "#...#........@......#", 
             "#...#...............#",
-            "#...#.........>.....#", // > = Stairs
+            "#...#.........>.....#", 
             "#...#...............#",
             "#####################",
         ],
@@ -110,25 +115,21 @@
             "#...#...#...#...#...#",
             "#...5.......6.......#",
             "#...................#",
-            "#.........$.........#", // $ = Boss
+            "#.........$.........#", 
             "#...................#",
             "#.........@.........#",
             "#####################",
         ]
     ];
 
-    // 4. QUEST DATA (The Dictionary)
+    // 4. QUEST DATA
     const quests = {
-        // Level 1 Enemies
         "1": { word: "greenish", title: "The Sickly Ghost", clue: "I am not bright green, but I have a sick, pale tint. I am..." },
-        // Level 2 Enemies
         "2": { word: "boyish", title: "The Young Knight", clue: "He is a grown man, but he looks very young. He has a ______ face." },
         "3": { word: "ticklish", title: "The Giggle Monster", clue: "If you touch his feet, he laughs! He is very..." },
         "4": { word: "feverish", title: "The Burning Spirit", clue: "My forehead is hot. I feel sick. I am..." },
-        // Level 3 Enemies
         "5": { word: "stylish", title: "The Fancy Skeleton", clue: "This skeleton wears the latest fashion trends. He is very..." },
         "6": { word: "devilish", title: "The Prankster", clue: "He plays cruel tricks on people. He has a wicked, ______ sense of humor." },
-        // BOSS
         "$": { word: "squeamish", title: "THE BOSS", clue: "FINAL TEST: I faint when I see blood. I am easily sickened. I am..." }
     };
 
@@ -136,7 +137,7 @@
     const npcDialogs = {
         0: "Welcome Hero! To defeat monsters here, you must add '-ish' to words. If something is 'somewhat green', it is Greenish!",
         1: "Be careful in the forest! The monsters there are tricky. Remember, '-ish' can also mean 'having the qualities of' something.",
-        2: "There is no one here... but you feel a chill." // Fallback
+        2: "There is no one here... but you feel a chill." 
     };
 
     // --- GAME LOGIC ---
@@ -151,33 +152,31 @@
             tileWidth: 16,
             tileHeight: 16,
             tiles: {
-                "#": () => [ sprite("wall"), area(), body({ isStatic: true }), "wall" ], 
-                ".": () => [ sprite("floor") ],
-                ">": () => [ sprite("stairs"), area(), body({ isStatic: true }), "stairs" ],
-                "@": () => [ sprite("hero"), area(), body(), anchor("center"), "player" ],
-                "N": () => [ sprite("npc"), area(), body({ isStatic: true }), anchor("center"), "npc" ],
+                // We apply SPRITE_SCALE here to fix image size issues automatically
+                "#": () => [ sprite("wall"), scale(SPRITE_SCALE), area(), body({ isStatic: true }), "wall" ], 
+                ".": () => [ sprite("floor"), scale(SPRITE_SCALE) ],
+                ">": () => [ sprite("stairs"), scale(SPRITE_SCALE), area(), body({ isStatic: true }), "stairs" ],
+                "@": () => [ sprite("hero"), scale(SPRITE_SCALE), area(), body(), anchor("center"), "player" ],
+                "N": () => [ sprite("npc"), scale(SPRITE_SCALE), area(), body({ isStatic: true }), anchor("center"), "npc" ],
                 
-                // Enemies (Dynamic loading based on ID)
-                "1": () => [ sprite("enemy"), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "1" } ],
-                "2": () => [ sprite("enemy"), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "2" } ],
-                "3": () => [ sprite("enemy"), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "3" } ],
-                "4": () => [ sprite("enemy"), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "4" } ],
-                "5": () => [ sprite("enemy"), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "5" } ],
-                "6": () => [ sprite("enemy"), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "6" } ],
-                "$": () => [ sprite("boss"), area(), body({ isStatic: true }), anchor("center"), "boss", { id: "$" } ]
+                // Enemies
+                "1": () => [ sprite("enemy"), scale(SPRITE_SCALE), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "1" } ],
+                "2": () => [ sprite("enemy"), scale(SPRITE_SCALE), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "2" } ],
+                "3": () => [ sprite("enemy"), scale(SPRITE_SCALE), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "3" } ],
+                "4": () => [ sprite("enemy"), scale(SPRITE_SCALE), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "4" } ],
+                "5": () => [ sprite("enemy"), scale(SPRITE_SCALE), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "5" } ],
+                "6": () => [ sprite("enemy"), scale(SPRITE_SCALE), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "6" } ],
+                "$": () => [ sprite("boss"), scale(SPRITE_SCALE), area(), body({ isStatic: true }), anchor("center"), "boss", { id: "$" } ]
             }
         };
 
-        const levelMap = addLevel(levels[levelIdx], LEVEL_CONFIG);
+        // Draw the map
+        addLevel(levels[levelIdx], LEVEL_CONFIG);
 
-        const player = add([
-            sprite("hero"), 
-            pos(levelMap.getPos(0, 0)), // Default, will be overwritten by @
-            area(), 
-            body(), 
-            anchor("center"),
-            "hero"
-        ]);
+        // --- FIX FOR TYPE ERROR ---
+        // Instead of trying to create the player again, we find the one 
+        // that the map just created using the '@' symbol.
+        const player = get("player")[0];
 
         // MOVEMENT
         const SPEED = 120;
@@ -218,7 +217,7 @@
     function startBattle(enemy) {
         currentEnemy = enemy;
         const data = quests[enemy.id];
-        openModal(data.title, data.clue, true); // true = isBattle
+        openModal(data.title, data.clue, true); 
     }
 
     function openModal(header, text, isBattle) {
