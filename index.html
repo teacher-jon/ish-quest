@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Suffixia: Ghost Mode</title>
+    <title>Suffixia: Ghost Mode (Geometry Ver.)</title>
     <meta charset="utf-8">
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Verdana', sans-serif; user-select: none; }
+        body { margin: 0; overflow: hidden; background-color: #14141e; font-family: 'Verdana', sans-serif; user-select: none; }
 
         /* ERROR BOX */
         #error-box { display: none; position: absolute; top: 0; left: 0; width: 100%; background: red; color: white; padding: 20px; z-index: 9999; font-family: monospace; white-space: pre-wrap; }
@@ -51,7 +51,7 @@
 
     <div id="start-overlay" onclick="window.startGame()">
         <div id="start-text">CLICK TO START GAME</div>
-        <div style="font-size: 14px; margin-top: 20px; color: #aaa;">(Green boxes show physics)</div>
+        <div style="font-size: 14px; margin-top: 20px; color: #aaa;">(Use Arrow Keys to Move)</div>
     </div>
 
     <div class="hud"><span id="level-display">Level 1</span></div>
@@ -72,22 +72,16 @@
     <script src="https://unpkg.com/kaboom@3000.0.1/dist/kaboom.js"></script>
 
     <script>
-    // 1. INITIALIZE ENGINE (DEBUG MODE ON)
+    // 1. INITIALIZE ENGINE
     kaboom({
         background: [20, 20, 30], 
         scale: 2, 
         canvas: document.querySelector("canvas"),
-        debug: true, // <--- THIS TURNS ON THE GREEN LINES
+        debug: true, 
     });
 
-    // 2. LOAD ASSETS
-    loadSprite("hero", "images/hero.png");
-    loadSprite("wall", "images/wall.png");
-    loadSprite("floor", "images/floor.png");
-    loadSprite("enemy", "images/enemy.png");
-    loadSprite("boss", "images/boss.png");
-    loadSprite("npc", "images/npc.png");        
-    loadSprite("stairs", "images/stairs.png"); 
+    // 2. ASSETS ARE REMOVED
+    // We are using rect() instead of sprite() so no loading is needed.
 
     const LEVELS = [
         [
@@ -149,39 +143,44 @@
         const levelDisplay = document.getElementById("level-display");
         if(levelDisplay) levelDisplay.innerText = "Level " + (levelIdx + 1);
 
-        // --- GHOST MODE SETTINGS ---
-        // We force sprites to 16x16.
-        // We shrink collision boxes to 0.4 (very tiny) to ignore black borders.
         const T_SIZE = 16;
         
         const LEVEL_CONFIG = {
             tileWidth: T_SIZE,
             tileHeight: T_SIZE,
             tiles: {
-                // WALLS: Tiny hitbox so hero can squeeze past
-                "#": () => [ sprite("wall", {width:T_SIZE, height:T_SIZE}), area({scale:0.5}), body({isStatic:true}), "wall" ], 
-                ".": () => [ sprite("floor", {width:T_SIZE, height:T_SIZE}) ],
-                ">": () => [ sprite("stairs", {width:T_SIZE, height:T_SIZE}), area({scale:0.5}), body({isStatic:true}), "stairs" ],
+                // WALLS: Gray Blocks
+                "#": () => [ rect(T_SIZE, T_SIZE), color(100,100,100), area({scale:0.5}), body({isStatic:true}), "wall" ], 
                 
-                // HERO: Tiny hitbox (0.4) to ignore black box
+                // FLOOR: Invisible (shows background)
+                ".": () => [ ],
+                
+                // STAIRS: Yellow Block
+                ">": () => [ rect(T_SIZE, T_SIZE), color(255,255,0), area({scale:0.5}), body({isStatic:true}), "stairs" ],
+                
+                // HERO: Blue Block
                 "@": () => [ 
-                    sprite("hero", {width:T_SIZE, height:T_SIZE}), 
+                    rect(T_SIZE, T_SIZE), 
+                    color(0, 100, 255),
                     area({ scale: 0.4 }), 
                     body(), 
                     anchor("center"), 
                     "player" 
                 ],
                 
-                "N": () => [ sprite("npc", {width:T_SIZE, height:T_SIZE}), area({scale:0.5}), body({isStatic:true}), anchor("center"), "npc" ],
+                // NPC: Green Block
+                "N": () => [ rect(T_SIZE, T_SIZE), color(0,255,0), area({scale:0.5}), body({isStatic:true}), anchor("center"), "npc" ],
                 
-                // ENEMIES
-                "1": () => [ sprite("enemy", {width:T_SIZE, height:T_SIZE}), area({scale:0.5}), body({isStatic:true}), anchor("center"), "enemy", { id: "1" } ],
-                "2": () => [ sprite("enemy", {width:T_SIZE, height:T_SIZE}), area({scale:0.5}), body({isStatic:true}), anchor("center"), "enemy", { id: "2" } ],
-                "3": () => [ sprite("enemy", {width:T_SIZE, height:T_SIZE}), area({scale:0.5}), body({isStatic:true}), anchor("center"), "enemy", { id: "3" } ],
-                "4": () => [ sprite("enemy", {width:T_SIZE, height:T_SIZE}), area({scale:0.5}), body({isStatic:true}), anchor("center"), "enemy", { id: "4" } ],
-                "5": () => [ sprite("enemy", {width:T_SIZE, height:T_SIZE}), area({scale:0.5}), body({isStatic:true}), anchor("center"), "enemy", { id: "5" } ],
-                "6": () => [ sprite("enemy", {width:T_SIZE, height:T_SIZE}), area({scale:0.5}), body({isStatic:true}), anchor("center"), "enemy", { id: "6" } ],
-                "$": () => [ sprite("boss", {width:32, height:32}), area({scale:0.5}), body({isStatic:true}), anchor("center"), "boss", { id: "$" } ]
+                // ENEMIES: Red Blocks
+                "1": () => [ rect(T_SIZE, T_SIZE), color(255,50,50), area({scale:0.5}), body({isStatic:true}), anchor("center"), "enemy", { id: "1" } ],
+                "2": () => [ rect(T_SIZE, T_SIZE), color(255,50,50), area({scale:0.5}), body({isStatic:true}), anchor("center"), "enemy", { id: "2" } ],
+                "3": () => [ rect(T_SIZE, T_SIZE), color(255,50,50), area({scale:0.5}), body({isStatic:true}), anchor("center"), "enemy", { id: "3" } ],
+                "4": () => [ rect(T_SIZE, T_SIZE), color(255,50,50), area({scale:0.5}), body({isStatic:true}), anchor("center"), "enemy", { id: "4" } ],
+                "5": () => [ rect(T_SIZE, T_SIZE), color(255,50,50), area({scale:0.5}), body({isStatic:true}), anchor("center"), "enemy", { id: "5" } ],
+                "6": () => [ rect(T_SIZE, T_SIZE), color(255,50,50), area({scale:0.5}), body({isStatic:true}), anchor("center"), "enemy", { id: "6" } ],
+                
+                // BOSS: Purple Block (Larger)
+                "$": () => [ rect(32, 32), color(150,0,255), area({scale:0.5}), body({isStatic:true}), anchor("center"), "boss", { id: "$" } ]
             }
         };
 
@@ -192,8 +191,8 @@
 
         // MOVEMENT
         const SPEED = 140; 
-        onKeyDown("left", () => { player.move(-SPEED, 0); player.flipX = true; }); 
-        onKeyDown("right", () => { player.move(SPEED, 0); player.flipX = false; });
+        onKeyDown("left", () => { player.move(-SPEED, 0); }); 
+        onKeyDown("right", () => { player.move(SPEED, 0); });
         onKeyDown("up", () => player.move(0, -SPEED));
         onKeyDown("down", () => player.move(0, SPEED));
 
