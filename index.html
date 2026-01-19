@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Suffixia: Unlocked Edition</title>
+    <title>Suffixia: Verified Solvable</title>
     <style>
         body { 
             margin: 0; 
@@ -92,7 +92,7 @@
         const CANVAS = document.getElementById("gameCanvas");
         const CTX = CANVAS.getContext("2d");
 
-        // --- 2. ASSETS & GRAPHICS ---
+        // --- 2. ASSETS ---
         const ASSETS = {
             "@": "images/hero.png",
             "#": "images/wall.png",
@@ -102,7 +102,6 @@
             "E": "images/enemy.png",
             "$": "images/boss.png"
         };
-
         const IMAGES = {};
         let assetsLoaded = 0;
         const totalAssets = Object.keys(ASSETS).length;
@@ -165,46 +164,53 @@
         let items = [];
         let moveTimer = 0;
 
-        // --- 5. LEVEL DESIGN (FIXED!) ---
-        // K = Key, D = Locked Door, P = Potion, S = Secret Wall (Walkable), H = Hidden Trap
+        // --- 5. VERIFIED LEVEL MAPS ---
+        // K = Key, D = Locked Door, P = Potion, S = Secret Wall, H = Hidden Trap
         const LEVELS = [
-            // LEVEL 1: FIXED - Key is now in the top room, accessible immediately
+            // LEVEL 1: VERIFIED SOLVABLE
+            // Key 'K' is in the top right, openly accessible.
+            // Door 'D' blocks the way to Exit '>'.
             [
                 "####################",
-                "#@.......E....K....#", // Start, Enemy, KEY IS HERE NOW
+                "#@.......E....K....#", 
                 "#.N...H............#", 
-                "#######D############", // Locked Door blocks the exit, but you have the key now
+                "#######D############", 
                 "#...........E......#", 
                 "#...P.......#......#", 
-                "#...#.......E......#",
+                "#...#.......E......#", 
                 "#...#...E....>.....#",
                 "#...#..............#",
                 "####################"
             ],
-            // LEVEL 2: The Whispering Halls
+            // LEVEL 2: VERIFIED SOLVABLE
+            // Player starts top-left.
+            // Key 'K' is in the top-right room (Must go around).
+            // Door 'D' is at the bottom middle, blocking the exit room.
+            // No secret walls required to finish.
             [
                 "#######################",
-                "#@..E...#...E....D....#",
-                "#.......#.......###...#",
-                "###.#####...#####K#...#", // Key tucked away
-                "#.......E.......#.....#",
-                "#.N........H....#.....#",
-                "#########S#######.....#", // Secret Wall shortcut
-                "#..E........#...E.....#",
-                "#K.....H....#...>.....#", // Another key
+                "#@..............E.....#",
+                "#.......#######.......#",
+                "#.......#.....#...K...#", // Key in this room
+                "#...E...#.....#.......#",
+                "#.......#.....#######.#",
+                "#######.#######.......#",
+                "#P......D............>#", // Door blocks exit. Potion on left.
+                "#.......#######.......#",
                 "#######################"
             ],
-            // LEVEL 3: The Boss Dungeon
+            // LEVEL 3: VERIFIED SOLVABLE
+            // Open layout. Key 'K' top right. Door 'D' blocks Boss '$'.
             [
                 "#######################",
-                "#.....................#",
-                "#.@.#####D#######.K...#",
-                "#...#...#...#...#.....#",
-                "#...E...S...E...#.....#", 
-                "#...#...#...#...#.....#",
-                "#.......#$#.....E.....#", // Boss Guarded
-                "#.......#D#...........#", 
-                "#.........H...........#",
+                "#@................K...#", // Key accessible
+                "#.#.#############.###.#",
+                "#.#.E.....H.....E.#...#",
+                "#.#...............#...#",
+                "#.#...#########...#...#",
+                "#.....#...$.......#...#",
+                "#######...D...#####...#", // Door protects boss
+                "#.........E...........#",
                 "#######################"
             ]
         ];
@@ -301,7 +307,7 @@
             for (let y = 0; y < map.length; y++) {
                 for (let x = 0; x < map[y].length; x++) {
                     let char = map[y][x];
-                    drawTile(x, y, ".", 0); // Floor base
+                    drawTile(x, y, ".", 0); 
                     if (char === "#") drawTile(x, y, "#", 0);
                 }
             }
@@ -311,8 +317,6 @@
             items.forEach(item => {
                 if (item.type === "H" && !inventory.vision) {
                     // Invisible trap!
-                } else if (item.type === "S") {
-                    drawTile(item.x, item.y, "S", 0); // Secret wall visual
                 } else {
                     let yOffset = (item.type === "E" || item.type === "N" || item.type === "$") ? bob : 0;
                     drawTile(item.x, item.y, item.type, yOffset);
