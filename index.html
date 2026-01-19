@@ -1,211 +1,280 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>The Legend of Suffixia: Advanced Quest</title>
+    <title>The Legend of Suffixia: DX Edition</title>
     <meta charset="utf-8">
     <style>
-        body { margin: 0; overflow: hidden; background-color: #1a1a1a; font-family: 'Verdana', sans-serif; }
+        body { margin: 0; overflow: hidden; background-color: #111; font-family: 'Verdana', sans-serif; }
         
-        /* The Question Box Overlay */
+        /* UI OVERLAY (Shared for Battles and NPCs) */
         #ui-layer {
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            background: #f4f4f4;
-            padding: 25px;
+            background: #fff;
+            padding: 20px;
             border: 4px solid #4a90e2;
-            border-radius: 12px;
+            border-radius: 10px;
             text-align: center;
-            display: none; /* Hidden by default */
-            box-shadow: 0 15px 30px rgba(0,0,0,0.7);
+            display: none; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             width: 400px;
             z-index: 100;
         }
-        h2 { margin-top: 0; color: #333; font-size: 20px; }
-        p.scenario { font-style: italic; color: #555; margin-bottom: 20px; font-size: 16px; }
-        input { padding: 12px; font-size: 18px; width: 80%; border: 2px solid #ddd; border-radius: 4px; }
-        button { padding: 12px 24px; font-size: 18px; margin-top: 15px; background: #4a90e2; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background 0.2s; }
+        h2 { margin: 0 0 10px 0; color: #333; }
+        p#ui-text { font-size: 18px; color: #555; line-height: 1.5; }
+        
+        /* Battle Specific Inputs */
+        #battle-controls { display: none; }
+        input { padding: 10px; font-size: 16px; width: 80%; margin-top: 10px; }
+        button { padding: 10px 20px; font-size: 16px; margin-top: 10px; background: #4a90e2; color: white; border: none; cursor: pointer; border-radius: 5px; }
         button:hover { background: #357abd; }
-        .instructions { position: absolute; bottom: 20px; left: 20px; color: white; opacity: 0.8; font-size: 14px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px;}
+        
+        .hud { position: absolute; top: 10px; left: 10px; color: white; font-size: 20px; font-weight: bold; text-shadow: 2px 2px #000; pointer-events: none;}
     </style>
 </head>
 <body>
 
-    <div id="ui-layer">
-        <h2 id="question-header">Monster Encounter!</h2>
-        <p class="scenario" id="question-text">...</p>
-        <input type="text" id="answer-input" placeholder="Type the -ish word..." autocomplete="off">
-        <br>
-        <button onclick="checkAnswer()">Cast Spell</button>
-        <p id="feedback" style="font-weight: bold; color: #d9534f; min-height: 24px;"></p>
+    <div class="hud">
+        <span id="level-display">Level 1</span>
     </div>
 
-    <div class="instructions">
-        <strong>CONTROLS:</strong> Arrow Keys to Move • Touch Enemies to Battle<br>
-        <strong>GOAL:</strong> Solve the riddles using the suffix <em>-ish</em>.
+    <div id="ui-layer">
+        <h2 id="ui-header">Title</h2>
+        <p id="ui-text">...</p>
+        
+        <div id="battle-controls">
+            <input type="text" id="answer-input" placeholder="Type -ish word..." autocomplete="off">
+            <br>
+            <button onclick="checkAnswer()">Attack!</button>
+        </div>
+
+        <div id="npc-controls">
+            <button onclick="closeModal()">Goodbye</button>
+        </div>
+
+        <p id="feedback" style="font-weight: bold; color: red; min-height: 20px; margin-top:5px;"></p>
     </div>
 
     <script src="https://unpkg.com/kaboom@3000.0.1/dist/kaboom.js"></script>
 
     <script>
-    // 1. Initialize Game
+    // 1. START GAME
     kaboom({
-        background: [40, 40, 50], // Darker dungeon floor
-        scale: 2,
+        background: [20, 20, 30], 
+        scale: 2, 
     });
 
-    // 2. Load "Sprites" (Using Emojis)
-    loadSprite("hero", "https://ui-avatars.com/api/?name=Link&background=0D8ABC&color=fff&size=64&font-size=0.5");
+    // 2. LOAD ASSETS (Make sure these exist in your GitHub!)
+    loadSprite("hero", "hero.png");
+    loadSprite("wall", "wall.png");
+    loadSprite("floor", "floor.png");
+    loadSprite("enemy", "enemy.png");
+    loadSprite("boss", "boss.png");
+    loadSprite("npc", "npc.png");       // NEW
+    loadSprite("stairs", "stairs.png"); // NEW
 
-    // 3. Define the Educational Content (The "Curriculum")
-    const LEVEL_CONFIG = {
-        tileWidth: 48,
-        tileHeight: 48,
-        tiles: {
-            // TERRAIN
-            "=": () => [ text("🌲"), area(), body({ isStatic: true }), anchor("center"), "wall" ],
-            "#": () => [ rect(48, 48), color(80, 80, 80), area(), body({ isStatic: true }), "wall" ], 
-            "~": () => [ text("🌊"), area(), body({ isStatic: true }), anchor("center"), "water" ],
-            "@": () => [ text("🧝"), area(), body(), anchor("center"), "player" ],
+    // 3. DEFINE LEVELS
+    const levels = [
+        // LEVEL 1: The Village (Tutorial)
+        [
+            "#####################",
+            "#...................#",
+            "#.N.......#.........#", // N = NPC
+            "#.........#....1....#", // 1 = Enemy
+            "#...#...............#",
+            "#...#........@......#", // @ = Hero
+            "#...#...............#",
+            "#...#.........>.....#", // > = Stairs
+            "#...#...............#",
+            "#####################",
+        ],
+        // LEVEL 2: The Dark Forest
+        [
+            "#####################",
+            "#...>...#...2.......#",
+            "#.......#.......#...#",
+            "###.#####...#####...#",
+            "#.......3.......#...#",
+            "#.N.............#...#",
+            "#########...#####...#",
+            "#...........#.......#",
+            "#...@.......#...4...#",
+            "#####################",
+        ],
+        // LEVEL 3: The Boss Dungeon
+        [
+            "#####################",
+            "#...................#",
+            "#...#...#...#...#...#",
+            "#...#...#...#...#...#",
+            "#...5.......6.......#",
+            "#...................#",
+            "#.........$.........#", // $ = Boss
+            "#...................#",
+            "#.........@.........#",
+            "#####################",
+        ]
+    ];
 
-            // ENEMIES (The Questions)
-            
-            // Level 1: Basic Recall (Color/Appearance)
-            "1": () => [ text("👻"), area(), body({ isStatic: true }), anchor("center"), "enemy", { 
-                word: "greenish", 
-                header: "The sickly ghost...",
-                clue: "This ghost isn't bright green, but it has a sick, pale tint. It is..." 
-            }],
-
-            // Level 2: Math/Time Approximation (Application)
-            "2": () => [ text("⏰"), area(), body({ isStatic: true }), anchor("center"), "enemy", { 
-                word: "noonish", 
-                header: "The Timekeeper blocks you!",
-                clue: "The meeting was supposed to be at 12:00 PM, but they said to arrive broadly around that time. When should you arrive?" 
-            }],
-
-            // Level 3: Metaphor/Idiom (Analysis)
-            "3": () => [ text("🐑"), area(), body({ isStatic: true }), anchor("center"), "enemy", { 
-                word: "sheepish", 
-                header: "A shy creature appears...",
-                clue: "The boy dropped his tray in the cafeteria. He looked up, feeling embarrassed and shy. He gave a ______ grin." 
-            }],
-
-            // Level 4: Personality/Nuance (Evaluation)
-            "4": () => [ text("👺"), area(), body({ isStatic: true }), anchor("center"), "enemy", { 
-                word: "selfish", 
-                header: " The Greedy Goblin!",
-                clue: "This goblin refuses to share anything. He only cares about his own needs. His behavior is..." 
-            }],
-
-            // Level 5: Quantity/Estimate (Math Connection)
-            "5": () => [ text("🏺"), area(), body({ isStatic: true }), anchor("center"), "enemy", { 
-                word: "fullish", 
-                header: "The Potion Master",
-                clue: "Is the glass full? Not mostly, but somewhat. It's not empty, it's..." 
-            }],
-
-            // BOSS: Complex Synthesis
-            "$": () => [ text("🐉"), area(), body({ isStatic: true }), anchor("center"), "boss", { 
-                word: "squeamish", 
-                header: "THE DRAGON OF DISGUST",
-                clue: "FINAL TEST: I faint when I see blood. I am easily sickened by gross things. I am..." 
-            }]
-        }
+    // 4. QUEST DATA (The Dictionary)
+    const quests = {
+        // Level 1 Enemies
+        "1": { word: "greenish", title: "The Sickly Ghost", clue: "I am not bright green, but I have a sick, pale tint. I am..." },
+        // Level 2 Enemies
+        "2": { word: "boyish", title: "The Young Knight", clue: "He is a grown man, but he looks very young. He has a ______ face." },
+        "3": { word: "ticklish", title: "The Giggle Monster", clue: "If you touch his feet, he laughs! He is very..." },
+        "4": { word: "feverish", title: "The Burning Spirit", clue: "My forehead is hot. I feel sick. I am..." },
+        // Level 3 Enemies
+        "5": { word: "stylish", title: "The Fancy Skeleton", clue: "This skeleton wears the latest fashion trends. He is very..." },
+        "6": { word: "devilish", title: "The Prankster", clue: "He plays cruel tricks on people. He has a wicked, ______ sense of humor." },
+        // BOSS
+        "$": { word: "squeamish", title: "THE BOSS", clue: "FINAL TEST: I faint when I see blood. I am easily sickened. I am..." }
     };
 
-    // 4. Map Design (Visual Layout)
-    const level = addLevel([
-        "###################",
-        "#      #          #",
-        "#  @   #    2     #", // Start & Time Question
-        "#      #          #",
-        "#######=     =####",
-        "#          ~      #",
-        "#    1     ~   3  #", // Color & Sheep Question
-        "#          ~      #",
-        "####=  =##########",
-        "#          #      #",
-        "#    4     #   5  #", // Selfish & Fullish
-        "#          #      #",
-        "#######  #########",
-        "#                 #",
-        "#        $        #", // BOSS
-        "#                 #",
-        "###################",
-    ], LEVEL_CONFIG);
+    // 5. NPC DIALOG DATA
+    const npcDialogs = {
+        0: "Welcome Hero! To defeat monsters here, you must add '-ish' to words. If something is 'somewhat green', it is Greenish!",
+        1: "Be careful in the forest! The monsters there are tricky. Remember, '-ish' can also mean 'having the qualities of' something.",
+        2: "There is no one here... but you feel a chill." // Fallback
+    };
 
-    // 5. Player Setup
-    const player = add([
-        text("🧝"), 
-        pos(center()),
-        area(), 
-        body(), 
-        anchor("center"),
-        "hero"
-    ]);
+    // --- GAME LOGIC ---
 
-    // 6. Movement
-    const SPEED = 220;
-    onKeyDown("left", () => player.move(-SPEED, 0));
-    onKeyDown("right", () => player.move(SPEED, 0));
-    onKeyDown("up", () => player.move(0, -SPEED));
-    onKeyDown("down", () => player.move(0, SPEED));
+    scene("game", ({ levelIdx }) => {
+        
+        // Update HUD
+        const levelDisplay = document.getElementById("level-display");
+        levelDisplay.innerText = "Level " + (levelIdx + 1);
 
-    player.onUpdate(() => {
-        camPos(player.pos);
+        const LEVEL_CONFIG = {
+            tileWidth: 16,
+            tileHeight: 16,
+            tiles: {
+                "#": () => [ sprite("wall"), area(), body({ isStatic: true }), "wall" ], 
+                ".": () => [ sprite("floor") ],
+                ">": () => [ sprite("stairs"), area(), body({ isStatic: true }), "stairs" ],
+                "@": () => [ sprite("hero"), area(), body(), anchor("center"), "player" ],
+                "N": () => [ sprite("npc"), area(), body({ isStatic: true }), anchor("center"), "npc" ],
+                
+                // Enemies (Dynamic loading based on ID)
+                "1": () => [ sprite("enemy"), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "1" } ],
+                "2": () => [ sprite("enemy"), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "2" } ],
+                "3": () => [ sprite("enemy"), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "3" } ],
+                "4": () => [ sprite("enemy"), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "4" } ],
+                "5": () => [ sprite("enemy"), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "5" } ],
+                "6": () => [ sprite("enemy"), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "6" } ],
+                "$": () => [ sprite("boss"), area(), body({ isStatic: true }), anchor("center"), "boss", { id: "$" } ]
+            }
+        };
+
+        const levelMap = addLevel(levels[levelIdx], LEVEL_CONFIG);
+
+        const player = add([
+            sprite("hero"), 
+            pos(levelMap.getPos(0, 0)), // Default, will be overwritten by @
+            area(), 
+            body(), 
+            anchor("center"),
+            "hero"
+        ]);
+
+        // MOVEMENT
+        const SPEED = 120;
+        onKeyDown("left", () => { player.move(-SPEED, 0); player.flipX = true; }); 
+        onKeyDown("right", () => { player.move(SPEED, 0); player.flipX = false; });
+        onKeyDown("up", () => player.move(0, -SPEED));
+        onKeyDown("down", () => player.move(0, SPEED));
+
+        player.onUpdate(() => { camPos(player.pos); });
+
+        // --- COLLISIONS ---
+
+        // 1. STAIRS (Next Level)
+        player.onCollide("stairs", () => {
+            if (levelIdx < levels.length - 1) {
+                go("game", { levelIdx: levelIdx + 1 });
+            } else {
+                openModal("Victory!", "You have conquered all the lands of Suffixia!", false);
+            }
+        });
+
+        // 2. NPCs (Talk)
+        player.onCollide("npc", () => {
+            const text = npcDialogs[levelIdx];
+            openModal("Friendly Wizard", text, false);
+        });
+
+        // 3. ENEMIES (Battle)
+        player.onCollide("enemy", (e) => startBattle(e));
+        player.onCollide("boss", (b) => startBattle(b));
+
     });
 
-    // --- BATTLE LOGIC ---
+    // --- UI SYSTEM ---
 
     let currentEnemy = null;
 
-    // Handle collision with enemies
-    player.onCollide("enemy", (enemy) => startBattle(enemy));
-    player.onCollide("boss", (boss) => startBattle(boss));
-
     function startBattle(enemy) {
         currentEnemy = enemy;
-        debug.paused = true; // Pause movement
-        
-        // Populate UI
-        document.getElementById("ui-layer").style.display = "block";
-        document.getElementById("question-header").innerText = enemy.header;
-        document.getElementById("question-text").innerText = enemy.clue;
-        document.getElementById("feedback").innerText = "";
-        
-        const input = document.getElementById("answer-input");
-        input.value = "";
-        input.focus();
+        const data = quests[enemy.id];
+        openModal(data.title, data.clue, true); // true = isBattle
     }
 
-    // Check Answer Logic
+    function openModal(header, text, isBattle) {
+        debug.paused = true;
+        
+        const ui = document.getElementById("ui-layer");
+        const battleControls = document.getElementById("battle-controls");
+        const npcControls = document.getElementById("npc-controls");
+        
+        document.getElementById("ui-header").innerText = header;
+        document.getElementById("ui-text").innerText = text;
+        document.getElementById("feedback").innerText = "";
+
+        ui.style.display = "block";
+
+        if (isBattle) {
+            battleControls.style.display = "block";
+            npcControls.style.display = "none";
+            const input = document.getElementById("answer-input");
+            input.value = "";
+            input.focus();
+        } else {
+            battleControls.style.display = "none";
+            npcControls.style.display = "block";
+        }
+    }
+
+    window.closeModal = function() {
+        document.getElementById("ui-layer").style.display = "none";
+        debug.paused = false;
+    }
+
     window.checkAnswer = function() {
         const input = document.getElementById("answer-input");
-        const ui = document.getElementById("ui-layer");
         const feedback = document.getElementById("feedback");
+        const data = quests[currentEnemy.id];
 
-        if (input.value.toLowerCase().trim() === currentEnemy.word) {
-            // Correct
+        if (input.value.toLowerCase().trim() === data.word) {
             currentEnemy.destroy(); 
-            ui.style.display = "none"; 
-            debug.paused = false; 
-            shake(5); 
+            closeModal();
+            shake(2); 
         } else {
-            // Incorrect
-            feedback.innerText = "The spell fizzled! Try again.";
+            feedback.innerText = "WRONG! Try again.";
             shake(2);
             input.value = "";
             input.focus();
         }
     }
     
-    // Allow pressing "Enter" to submit
+    // Enter key support
     document.getElementById("answer-input").addEventListener("keypress", function(event) {
-        if (event.key === "Enter") {
-            window.checkAnswer();
-        }
+        if (event.key === "Enter") { window.checkAnswer(); }
     });
+
+    // START THE GAME AT LEVEL 0
+    go("game", { levelIdx: 0 });
 
     </script>
 </body>
