@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Suffixia: Dungeon Crawler Edition</title>
+    <title>Suffixia: Unlocked Edition</title>
     <style>
         body { 
             margin: 0; 
@@ -101,7 +101,6 @@
             ">": "images/stairs.png",
             "E": "images/enemy.png",
             "$": "images/boss.png"
-            // Keys, Potions, Doors are drawn with Code/Emojis to ensure they always appear
         };
 
         const IMAGES = {};
@@ -166,17 +165,17 @@
         let items = [];
         let moveTimer = 0;
 
-        // --- 5. LEVEL DESIGN ---
+        // --- 5. LEVEL DESIGN (FIXED!) ---
         // K = Key, D = Locked Door, P = Potion, S = Secret Wall (Walkable), H = Hidden Trap
         const LEVELS = [
-            // LEVEL 1: The Training Grounds
+            // LEVEL 1: FIXED - Key is now in the top room, accessible immediately
             [
                 "####################",
-                "#@.................#",
+                "#@.......E....K....#", // Start, Enemy, KEY IS HERE NOW
                 "#.N...H............#", 
-                "#######D############", // Door blocks path
-                "#...........E..K...#", // Key guarded by Enemy
-                "#...P.......#......#", // Potion
+                "#######D############", // Locked Door blocks the exit, but you have the key now
+                "#...........E......#", 
+                "#...P.......#......#", 
                 "#...#.......E......#",
                 "#...#...E....>.....#",
                 "#...#..............#",
@@ -187,7 +186,7 @@
                 "#######################",
                 "#@..E...#...E....D....#",
                 "#.......#.......###...#",
-                "###.#####...#####K#...#", // Key in a nook
+                "###.#####...#####K#...#", // Key tucked away
                 "#.......E.......#.....#",
                 "#.N........H....#.....#",
                 "#########S#######.....#", // Secret Wall shortcut
@@ -201,10 +200,10 @@
                 "#.....................#",
                 "#.@.#####D#######.K...#",
                 "#...#...#...#...#.....#",
-                "#...E...S...E...#.....#", // Secret passage in middle
+                "#...E...S...E...#.....#", 
                 "#...#...#...#...#.....#",
                 "#.......#$#.....E.....#", // Boss Guarded
-                "#.......#D#...........#", // Locked boss door
+                "#.......#D#...........#", 
                 "#.........H...........#",
                 "#######################"
             ]
@@ -215,7 +214,7 @@
             if (levelIdx >= LEVELS.length) {
                 alert("YOU HAVE CONQUERED SUFFIXIA!");
                 levelIdx = 0;
-                inventory = { keys: 0, vision: false }; // Reset
+                inventory = { keys: 0, vision: false }; 
             }
 
             const map = LEVELS[levelIdx];
@@ -337,8 +336,7 @@
                 return;
             } 
             
-            // 2. Draw Code-Generated Items (Keys, Doors, etc)
-            // Background
+            // 2. Draw Code-Generated Items
             if (type === "#") { CTX.fillStyle = "#444"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); return; }
             if (type === ".") { CTX.fillStyle = "#111"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); return; }
             
@@ -379,20 +377,19 @@
                 
                 if (item) {
                     if (item.type === "N") {
-                        openUI("Wizard", "Some walls ('?') are fake! Walk into them to find loot.", false);
+                        openUI("Wizard", "I heard there is a Key hidden in this very room!", false);
                     } 
                     else if (item.type === "K") {
                         inventory.keys++;
                         updateHUD();
-                        items = items.filter(i => i !== item); // Remove Key
-                        // Move player onto the tile
+                        items = items.filter(i => i !== item); 
                         player.x = nx; player.y = ny;
                     }
                     else if (item.type === "P") {
                         inventory.vision = true;
                         updateHUD();
                         openUI("Potion Drinker", "You can now see hidden traps!", false);
-                        items = items.filter(i => i !== item); // Remove Potion
+                        items = items.filter(i => i !== item); 
                         player.x = nx; player.y = ny;
                     }
                     else if (item.type === "D") {
