@@ -1,52 +1,93 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Suffixia: The Legend Returns</title>
+    <title>Suffixia: HD Edition</title>
     <style>
-        body { margin: 0; background: #222; overflow: hidden; font-family: monospace; color: white; }
-        canvas { display: block; margin: 0 auto; background: #151515; border: 2px solid #555; }
+        body { 
+            margin: 0; 
+            background: #111; 
+            overflow: hidden; /* No scrollbars */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            color: white; 
+        }
+        
+        canvas { 
+            display: block; 
+            background: #181818; 
+        }
         
         /* UI OVERLAY */
         #ui-layer {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: white; color: black; padding: 20px; border: 4px solid black;
-            text-align: center; display: none; font-family: sans-serif;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 300px;
+            background: rgba(20, 20, 30, 0.95); 
+            color: white; 
+            padding: 30px; 
+            border: 2px solid #4a90e2;
+            border-radius: 15px;
+            text-align: center; 
+            display: none; 
+            width: 400px;
+            box-shadow: 0 0 50px rgba(74, 144, 226, 0.3);
+            backdrop-filter: blur(5px);
         }
-        input { padding: 5px; font-size: 16px; text-align: center; width: 80%; margin-top: 10px;}
-        button { padding: 8px 16px; font-size: 16px; cursor: pointer; background: #333; color: white; border: none; margin-top: 10px;}
-        button:hover { background: #555; }
+
+        h2#ui-title { margin-top: 0; color: #4a90e2; text-transform: uppercase; letter-spacing: 2px; }
+        p#ui-text { font-size: 18px; line-height: 1.5; color: #ddd; }
+
+        input { 
+            padding: 12px; font-size: 18px; text-align: center; width: 80%; margin-top: 15px;
+            background: #333; border: 1px solid #555; color: white; border-radius: 5px;
+        }
         
-        #debug { position: absolute; top: 10px; left: 10px; color: #0f0; font-size: 14px; pointer-events: none; }
-        #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; }
+        button { 
+            padding: 12px 24px; font-size: 16px; cursor: pointer; margin-top: 20px;
+            background: #4a90e2; color: white; border: none; border-radius: 5px; font-weight: bold;
+            transition: transform 0.1s, background 0.1s;
+        }
+        button:hover { background: #357abd; transform: scale(1.05); }
+        
+        #loading { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            font-size: 24px; font-weight: bold; letter-spacing: 3px;
+        }
     </style>
 </head>
 <body>
 
-    <div id="debug">Loading Assets...</div>
-    <div id="loading">LOADING IMAGES...</div>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="loading">LOADING HIGH-RES ASSETS...</div>
+    <canvas id="gameCanvas"></canvas>
 
     <div id="ui-layer">
         <h2 id="ui-title">Quest</h2>
         <p id="ui-text">...</p>
+        
         <div id="battle-ui" style="display:none">
-            <input type="text" id="answer" placeholder="Type -ish word" autocomplete="off">
-            <br><button onclick="checkAnswer()">Cast Spell</button>
+            <input type="text" id="answer" placeholder="Type word ending in -ish" autocomplete="off">
+            <br>
+            <button onclick="checkAnswer()">CAST SPELL</button>
         </div>
-        <button id="close-btn" onclick="closeUI()" style="display:none">Close</button>
-        <p id="feedback" style="color:red; font-weight:bold; min-height: 20px; margin-top:10px;"></p>
+        
+        <button id="close-btn" onclick="closeUI()" style="display:none">CONTINUE</button>
+        <p id="feedback" style="color:#ff6b6b; font-weight:bold; min-height: 20px; margin-top:15px;"></p>
     </div>
 
     <script>
-        // --- 1. CONFIGURATION ---
-        const TILE_SIZE = 48; // Bigger tiles for better detail
+        // --- 1. HD CONFIGURATION ---
+        const TILE_SIZE = 64; // Increased size (was 32/48) to show details
         const CANVAS = document.getElementById("gameCanvas");
         const CTX = CANVAS.getContext("2d");
-        const DEBUG = document.getElementById("debug");
 
-        // --- 2. IMAGE LOADER ---
-        // Maps the map characters to your file names
+        // --- 2. RESIZE HANDLER (Full Screen) ---
+        function resize() {
+            CANVAS.width = window.innerWidth;
+            CANVAS.height = window.innerHeight;
+            // Crisp pixel art look (optional, keeps lines sharp)
+            CTX.imageSmoothingEnabled = false; 
+            if(assetsLoaded === totalAssets) draw();
+        }
+        window.addEventListener('resize', resize);
+
+        // --- 3. ASSETS ---
         const ASSETS = {
             "@": "images/hero.png",
             "#": "images/wall.png",
@@ -65,15 +106,10 @@
             for (let key in ASSETS) {
                 const img = new Image();
                 img.src = ASSETS[key];
-                img.onload = () => {
-                    assetsLoaded++;
-                    checkLoad();
-                };
-                img.onerror = () => {
-                    console.error("Failed to load: " + ASSETS[key]);
-                    // If image fails, we still count it so game starts (it will show as colored square)
-                    assetsLoaded++;
-                    checkLoad();
+                img.onload = () => { assetsLoaded++; checkLoad(); };
+                img.onerror = () => { 
+                    console.error("Missing: " + ASSETS[key]); 
+                    assetsLoaded++; checkLoad(); 
                 };
                 IMAGES[key] = img;
             }
@@ -82,12 +118,12 @@
         function checkLoad() {
             if (assetsLoaded === totalAssets) {
                 document.getElementById("loading").style.display = "none";
-                DEBUG.innerText = "Assets Loaded. Starting...";
-                loadLevel(0);
+                resize(); // Set initial size
+                requestAnimationFrame(gameLoop); // Start Animation Loop
             }
         }
 
-        // --- 3. GAME DATA ---
+        // --- 4. GAME DATA ---
         let player = { x: 1, y: 1 };
         let levelIdx = 0;
         let isPaused = false;
@@ -95,8 +131,8 @@
         let walls = [];
         let items = [];
 
+        // LEVELS
         const LEVELS = [
-            // LEVEL 1: The Village
             [
                 "####################",
                 "#..................#",
@@ -109,7 +145,6 @@
                 "#...#..............#",
                 "####################"
             ],
-            // LEVEL 2: The Forest
             [
                 "####################",
                 "#@..E...#...E......#",
@@ -122,7 +157,6 @@
                 "#...........#...>..#",
                 "####################"
             ],
-            // LEVEL 3: The Dungeon
             [
                 "####################",
                 "#..................#",
@@ -145,12 +179,12 @@
             "squeamish": { clue: "Faints at sight of blood...", answer: "squeamish" }
         };
 
-        // --- 4. ENGINE LOGIC ---
-
+        // --- 5. ENGINE ---
+        
         function loadLevel(idx) {
             levelIdx = idx;
             if (levelIdx >= LEVELS.length) {
-                alert("YOU WIN! GAME OVER.");
+                alert("YOU HAVE CONQUERED SUFFIXIA!");
                 levelIdx = 0;
             }
 
@@ -158,96 +192,100 @@
             walls = [];
             items = [];
 
-            // Parse Map
             for (let y = 0; y < map.length; y++) {
                 for (let x = 0; x < map[y].length; x++) {
                     let char = map[y][x];
-                    
-                    if (char === "#") {
-                        walls.push({x, y});
-                    } else if (char === "@") {
-                        player.x = x;
-                        player.y = y;
-                    } else if (char === "E" || char === "$") {
-                        // Pick a random quest for this enemy
+                    if (char === "#") walls.push({x, y});
+                    else if (char === "@") { player.x = x; player.y = y; }
+                    else if (char === "E" || char === "$") {
                         const keys = Object.keys(QUESTS);
-                        const questKey = keys[Math.floor(Math.random() * keys.length)];
-                        items.push({ x, y, type: char, quest: QUESTS[questKey], id: Math.random() });
-                    } else if (char !== ".") {
-                        items.push({ x, y, type: char, id: Math.random() });
-                    }
+                        const q = QUESTS[keys[Math.floor(Math.random() * keys.length)]];
+                        items.push({ x, y, type: char, quest: q, id: Math.random() });
+                    } 
+                    else if (char !== ".") items.push({ x, y, type: char, id: Math.random() });
                 }
             }
-            DEBUG.innerText = "Level " + (levelIdx + 1);
-            draw();
+        }
+
+        // --- 6. RENDERER (With Animation) ---
+        
+        function gameLoop() {
+            if(!isPaused) draw();
+            requestAnimationFrame(gameLoop);
         }
 
         function draw() {
-            // Clear Background
+            // Clear
             CTX.fillStyle = "#151515";
             CTX.fillRect(0, 0, CANVAS.width, CANVAS.height);
 
-            // Camera: Keep player centered
+            // Calculate Center Camera
             let offsetX = (CANVAS.width / 2) - (player.x * TILE_SIZE) - (TILE_SIZE / 2);
             let offsetY = (CANVAS.height / 2) - (player.y * TILE_SIZE) - (TILE_SIZE / 2);
 
             CTX.save();
             CTX.translate(offsetX, offsetY);
 
-            // 1. Draw Map Tiles
+            // Breathing Animation Offset (Bobbing up and down)
+            const bob = Math.sin(Date.now() / 200) * 3; 
+
+            // 1. Draw Map & Walls
             const map = LEVELS[levelIdx];
             for (let y = 0; y < map.length; y++) {
                 for (let x = 0; x < map[y].length; x++) {
                     let char = map[y][x];
-                    // Always draw floor first
-                    drawTile(x, y, ".");
+                    
+                    // Floor (No bobbing)
+                    drawTile(x, y, ".", 0); 
                     
                     if (char === "#") {
-                        drawTile(x, y, "#");
+                        drawTile(x, y, "#", 0); // Walls don't bob
                     }
                 }
             }
 
-            // 2. Draw Items
+            // 2. Draw Items (Enemies/NPCs Bob)
             items.forEach(item => {
-                drawTile(item.x, item.y, item.type);
+                let yOffset = (item.type === "E" || item.type === "N" || item.type === "$") ? bob : 0;
+                drawTile(item.x, item.y, item.type, yOffset);
             });
 
-            // 3. Draw Player
-            drawTile(player.x, player.y, "@");
+            // 3. Draw Player (Bobs)
+            drawTile(player.x, player.y, "@", bob);
 
             CTX.restore();
         }
 
-        function drawTile(x, y, type) {
+        function drawTile(x, y, type, yOffset) {
             const img = IMAGES[type];
+            const px = x * TILE_SIZE;
+            const py = (y * TILE_SIZE) + yOffset; // Apply animation
+
             if (img && img.complete && img.naturalHeight !== 0) {
-                // FORCE IMAGE TO FIT TILE_SIZE (Fixes the big image bug!)
-                CTX.drawImage(img, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                // Draw Image scaled to TILE_SIZE
+                CTX.drawImage(img, px, py, TILE_SIZE, TILE_SIZE);
             } else {
-                // Fallback colored square if image missing
+                // Fallback Colors
                 if (type === "#") CTX.fillStyle = "#555";
                 else if (type === ".") CTX.fillStyle = "#222";
-                else if (type === "@") CTX.fillStyle = "blue";
-                else if (type === "E") CTX.fillStyle = "red";
-                else if (type === ">") CTX.fillStyle = "yellow";
-                else CTX.fillStyle = "green";
+                else if (type === "@") CTX.fillStyle = "#4a90e2";
+                else if (type === "E") CTX.fillStyle = "#e74c3c";
+                else if (type === ">") CTX.fillStyle = "#f1c40f";
+                else CTX.fillStyle = "#2ecc71";
                 
-                CTX.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE);
             }
         }
 
-        // --- 5. MOVEMENT & INTERACTION ---
+        // --- 7. CONTROLS ---
 
         window.addEventListener("keydown", (e) => {
             if (isPaused) return;
-
             let dx = 0, dy = 0;
             if (e.key === "ArrowLeft") dx = -1;
             if (e.key === "ArrowRight") dx = 1;
             if (e.key === "ArrowUp") dy = -1;
             if (e.key === "ArrowDown") dy = 1;
-
             if (dx !== 0 || dy !== 0) move(dx, dy);
         });
 
@@ -255,33 +293,26 @@
             let nextX = player.x + dx;
             let nextY = player.y + dy;
 
-            // Collision: Walls
             if (walls.some(w => w.x === nextX && w.y === nextY)) return;
 
-            // Collision: Items
             let item = items.find(i => i.x === nextX && i.y === nextY);
             if (item) {
-                handleItem(item);
-                return; // Stop moving if we hit something
+                if (item.type === "N") {
+                    openUI("Wizard", "Greetings! Add '-ish' to words to reveal their nature.", false);
+                } else if (item.type === "E" || item.type === "$") {
+                    currentEnemy = item;
+                    openUI("Battle Mode", item.quest.clue, true);
+                } else if (item.type === ">") {
+                    loadLevel(levelIdx + 1);
+                }
+                return; 
             }
 
             player.x = nextX;
             player.y = nextY;
-            draw();
         }
 
-        function handleItem(item) {
-            if (item.type === "N") {
-                openUI("Wizard", "Combine the base word with '-ish' to defeat the monsters!", false);
-            } else if (item.type === "E" || item.type === "$") {
-                currentEnemy = item;
-                openUI("Battle Mode", item.quest.clue, true);
-            } else if (item.type === ">") {
-                loadLevel(levelIdx + 1);
-            }
-        }
-
-        // --- 6. UI SYSTEM ---
+        // --- 8. UI LOGIC ---
 
         const UI = document.getElementById("ui-layer");
         const INPUT = document.getElementById("answer");
@@ -311,28 +342,22 @@
 
         window.checkAnswer = function() {
             if (!currentEnemy) return;
-            
-            const attempt = INPUT.value.toLowerCase().trim();
-            if (attempt === currentEnemy.quest.answer) {
-                // Defeat Enemy
+            if (INPUT.value.toLowerCase().trim() === currentEnemy.quest.answer) {
                 items = items.filter(i => i !== currentEnemy);
                 closeUI();
-                draw();
             } else {
-                document.getElementById("feedback").innerText = "Wrong! Try again.";
+                document.getElementById("feedback").innerText = "WRONG! Try again.";
             }
         }
-
-        // Handle Enter Key in Input
+        
         INPUT.addEventListener("keypress", (e) => {
             if (e.key === "Enter") checkAnswer();
         });
-        
-        // Expose CloseUI globally
         window.closeUI = closeUI;
 
-        // START ENGINE
+        // START
         preloadImages();
+        loadLevel(0);
 
     </script>
 </body>
