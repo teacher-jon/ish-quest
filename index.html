@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>The Legend of Suffixia</title>
+    <title>The Legend of Suffixia: Debug Mode</title>
     <meta charset="utf-8">
     <style>
         body { 
@@ -10,6 +10,15 @@
             background-color: #000; 
             font-family: 'Verdana', sans-serif; 
             user-select: none;
+        }
+
+        /* ERROR BOX (Only shows if something breaks) */
+        #error-box {
+            display: none;
+            position: absolute; top: 0; left: 0; width: 100%;
+            background: red; color: white; padding: 20px;
+            z-index: 9999; font-family: monospace; font-size: 16px;
+            white-space: pre-wrap;
         }
         
         /* UI OVERLAY */
@@ -67,11 +76,23 @@
         #start-text { font-size: 30px; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
     </style>
+
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            const errorBox = document.getElementById("error-box");
+            errorBox.style.display = "block";
+            errorBox.innerText = "CRASH REPORT:\n" + message + "\nLine: " + lineno;
+            return false;
+        };
+    </script>
 </head>
 <body>
 
-    <div id="start-overlay">
+    <div id="error-box"></div>
+
+    <div id="start-overlay" onclick="window.startGame()">
         <div id="start-text">CLICK TO START GAME</div>
+        <div style="font-size: 14px; margin-top: 20px; color: #aaa;">(Make sure sound is on)</div>
     </div>
 
     <div class="hud">
@@ -85,11 +106,11 @@
         <div id="battle-controls" style="display:none;">
             <input type="text" id="answer-input" placeholder="Type word ending in -ish" autocomplete="off">
             <br>
-            <button id="attack-btn">CAST SPELL</button>
+            <button onclick="window.checkAnswer()">CAST SPELL</button>
         </div>
 
         <div id="npc-controls" style="display:none;">
-            <button id="close-btn">Close</button>
+            <button onclick="window.closeModal()">Close</button>
         </div>
 
         <p id="feedback"></p>
@@ -99,12 +120,15 @@
 
     <script>
     // 1. INITIALIZE ENGINE
-    kaboom({
-        background: [20, 20, 30], 
-        scale: 2, 
-        canvas: document.querySelector("canvas"),
-        burp: true, 
-    });
+    try {
+        kaboom({
+            background: [20, 20, 30], 
+            scale: 2, 
+            canvas: document.querySelector("canvas"),
+        });
+    } catch (e) {
+        console.error("Kaboom failed to load:", e);
+    }
 
     // 2. LOAD ASSETS
     loadSprite("hero", "images/hero.png");
@@ -168,17 +192,16 @@
     const NPC_DIALOGS = {
         0: "Welcome Hero! To defeat monsters, you must combine the base word with the suffix '-ish'.",
         1: "The forest is dark. Watch your step! Monsters here will test your spelling.",
-        2: "This is the final chamber. The boss is very squeamish... oops, I gave you a hint!" 
+        2: "This is the final chamber. Good luck!"
     };
 
-    // --- MAIN GAME SCENE ---
+    // --- SCENE LOGIC ---
     scene("game", ({ levelIdx }) => {
         
         const levelDisplay = document.getElementById("level-display");
         if(levelDisplay) levelDisplay.innerText = "Level " + (levelIdx + 1);
 
         // --- THE STUCK IN WALL FIX ---
-        // We force sprites to 16x16 and shrink the collision box
         const T_SIZE = 16;
         
         const LEVEL_CONFIG = {
@@ -189,7 +212,7 @@
                 ".": () => [ sprite("floor", {width:T_SIZE, height:T_SIZE}) ],
                 ">": () => [ sprite("stairs", {width:T_SIZE, height:T_SIZE}), area(), body({isStatic:true}), "stairs" ],
                 
-                // HERO FIX: Scale area to 0.6 so you can walk through halls
+                // HERO FIX: Scale area to 0.6
                 "@": () => [ 
                     sprite("hero", {width:T_SIZE, height:T_SIZE}), 
                     area({ scale: 0.6 }), 
@@ -200,7 +223,7 @@
                 
                 "N": () => [ sprite("npc", {width:T_SIZE, height:T_SIZE}), area({scale:0.8}), body({isStatic:true}), anchor("center"), "npc" ],
                 
-                // ENEMY FIX: Scale area to 0.7
+                // ENEMIES
                 "1": () => [ sprite("enemy", {width:T_SIZE, height:T_SIZE}), area({scale:0.7}), body({isStatic:true}), anchor("center"), "enemy", { id: "1" } ],
                 "2": () => [ sprite("enemy", {width:T_SIZE, height:T_SIZE}), area({scale:0.7}), body({isStatic:true}), anchor("center"), "enemy", { id: "2" } ],
                 "3": () => [ sprite("enemy", {width:T_SIZE, height:T_SIZE}), area({scale:0.7}), body({isStatic:true}), anchor("center"), "enemy", { id: "3" } ],
@@ -211,12 +234,11 @@
             }
         };
 
-        addLevel(LEVELS[levelIdx] || LEVELS[0], LEVEL_CONFIG);
+        addLevel(LEVELS[levelIdx], LEVEL_CONFIG);
 
         const player = get("player")[0];
-        if (!player) return; // Prevent crash if player missing
+        if (!player) return; 
 
-        // MOVEMENT
         const SPEED = 140; 
         onKeyDown("left", () => { player.move(-SPEED, 0); player.flipX = true; }); 
         onKeyDown("right", () => { player.move(SPEED, 0); player.flipX = false; });
@@ -225,7 +247,6 @@
 
         player.onUpdate(() => { camPos(lerp(camPos(), player.pos, dt() * 5)); });
 
-        // COLLISIONS
         player.onCollide("stairs", () => {
             if (levelIdx < LEVELS.length - 1) go("game", { levelIdx: levelIdx + 1 });
             else openModal("VICTORY!", "You have conquered all the lands!", false);
@@ -240,16 +261,17 @@
         player.onCollide("boss", (b) => startBattle(b));
     });
 
-    // --- BATTLE SYSTEM ---
+    // --- GLOBAL FUNCTIONS (Attached to Window for Safety) ---
+    
     let currentEnemy = null;
 
-    function startBattle(enemy) {
+    window.startBattle = function(enemy) {
         currentEnemy = enemy;
         const data = QUESTS[enemy.id];
-        if(data) openModal(data.title, data.clue, true); 
+        if(data) window.openModal(data.title, data.clue, true); 
     }
 
-    function openModal(header, text, isBattle) {
+    window.openModal = function(header, text, isBattle) {
         debug.paused = true; 
         const ui = document.getElementById("ui-layer");
         const battleControls = document.getElementById("battle-controls");
@@ -271,12 +293,12 @@
         }
     }
 
-    function closeModal() {
+    window.closeModal = function() {
         document.getElementById("ui-layer").style.display = "none";
         debug.paused = false; 
     }
 
-    function checkAnswer() {
+    window.checkAnswer = function() {
         const input = document.getElementById("answer-input");
         const feedback = document.getElementById("feedback");
         
@@ -286,7 +308,7 @@
         if (input.value.toLowerCase().trim() === data.word) {
             const pos = currentEnemy.pos; 
             currentEnemy.destroy(); 
-            closeModal();
+            window.closeModal();
             shake(5); 
             addKaboom(pos); 
         } else {
@@ -298,24 +320,14 @@
         }
     }
 
-    // --- THE FIX: EVENT LISTENERS ---
-    // Instead of using 'onclick' in HTML, we add the logic here.
-    // This prevents the "startGame is not defined" error.
-    
-    const startOverlay = document.getElementById("start-overlay");
-    if(startOverlay) {
-        startOverlay.addEventListener("click", () => {
-            startOverlay.style.display = "none";
-            burp(); // Sound check
-            go("game", { levelIdx: 0 });
-        });
+    window.startGame = function() {
+        document.getElementById("start-overlay").style.display = "none";
+        go("game", { levelIdx: 0 });
     }
 
-    document.getElementById("attack-btn").addEventListener("click", checkAnswer);
-    document.getElementById("close-btn").addEventListener("click", closeModal);
-    
+    // Enter key support
     document.getElementById("answer-input").addEventListener("keypress", function(event) {
-        if (event.key === "Enter") { checkAnswer(); }
+        if (event.key === "Enter") { window.checkAnswer(); }
     });
 
     </script>
