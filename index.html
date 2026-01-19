@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Suffixia: Fixed & Polished</title>
+    <title>Suffixia: Fixed Level 2</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body { 
@@ -113,7 +113,7 @@
     <div id="start-screen">
         <h1 style="font-size: 50px; color: #a29bfe; margin-bottom: 10px; text-shadow: 0 0 30px #6c5ce7;">SUFFIXIA</h1>
         <p style="color:#aaa; margin-bottom: 40px; font-size: 16px;">The Legend of the Word Warden</p>
-        <button id="start-btn" onclick="initGame()">PLAY (Enable Audio)</button>
+        <button id="start-btn" onclick="initGame()">PLAY</button>
     </div>
     
     <div id="hud">
@@ -154,7 +154,7 @@
         const CANVAS = document.getElementById("gameCanvas");
         const CTX = CANVAS.getContext("2d");
 
-        // --- 2. AUDIO ENGINE ---
+        // --- 2. AUDIO ENGINE (Safe Mode) ---
         const Audio = {
             ctx: null,
             active: false,
@@ -235,8 +235,8 @@
 
         const STORY_TEXT = [
             "Welcome, Word Warden. The Suffix Sorcerer has stolen the endings of our words! You must reclaim them!",
-            "You have entered the Chasm. The bridge is locked! Find the Key in the forest to proceed.",
-            "The Throne Room. The Sorcerer has locked himself in the center cage. Defeat his guards to find the Key!"
+            "You have entered the Chasm. The rooms are split by a great wall. You must find the key to open the central door!",
+            "The Throne Room. The Sorcerer waits behind the final door."
         ];
 
         const RANKS = [
@@ -257,69 +257,50 @@
         let items = [];
         let moveTimer = 0;
 
-        // --- 6. LEVELS (VERIFIED & FIXED) ---
+        // --- 6. LEVELS (FIXED LEVEL 2) ---
         const LEVELS = [
             // LEVEL 1: TUTORIAL
             [ 
                 "####################", 
-                "#@.......E....K....#", // Start, Enemy, Key
-                "#.N...H............#", // NPC, Trap
-                "#######D############", // Locked Door Blocking Exit
+                "#@.......E....K....#", 
+                "#.N...H............#", 
+                "#######D############", 
                 "#...........E......#", 
-                "#...P.......#......#", // Potion
+                "#...P.......#......#", 
                 "#...#.......E......#", 
-                "#...#...E....>.....#", // Exit
+                "#...#...E....>.....#", 
                 "#...#..............#", 
                 "####################" 
             ],
             
-            // LEVEL 2: THE CHASM (Split Map)
-            // Left Side = Start + Potion + Key (Bottom)
-            // Right Side = Exit
-            // Middle = Wall of # with Door D
-            [ 
-                "#######################", 
-                "#@....#...D.......>...#", // Door D blocks the only crossing
-                "#####.#...#...#########", 
-                "#.....#...#...........#", 
-                "#..E..#...#...E...E...#", 
-                "#.....#...#...........#", 
-                "#.....#...#...#########", 
-                "#P....#...#..........K#", // Key is deep in right (Wait, Key needs to be reachable!)
-                // FIX: Key must be on LEFT side to open the door to RIGHT side.
-                // Or Key is on Right side? 
-                // If Player starts Left (@), Door is Middle. Key must be Left.
-                // Let's Put Key on Bottom Left.
-                // Re-writing Level 2 Map below in load function to be safe.
-                "#######################" 
+            // LEVEL 2: THE BRIDGE (Redesigned for guaranteed solvability)
+            // Left Side: Start @, Key K, Potion P
+            // Middle: Wall # with Door D
+            // Right Side: Exit >
+            [
+                "#######################",
+                "#@........#...........#", 
+                "#.........#...........#",
+                "#...E.....#.....E.....#",
+                "#.........D...........#", // Door connects the two rooms
+                "#...K.....#...........#", // Key is clearly in the starting room
+                "#.........#......>....#", 
+                "#.........#...........#",
+                "#######################"
             ],
             
             // LEVEL 3: THE ARENA
-            // Boss in center cage. Key in corner.
             [ 
                 "#######################", 
                 "#@....................#", 
                 "#######.#######.#######", 
                 "#.....#.#.....#.#.....#", 
-                "#..E..#.#..$..#.#..K..#", // Key K is guarded by E
+                "#..E..#.#..$..#.#..K..#", 
                 "#.....#.#.....#.#.....#", 
-                "#.#####.###D###.#######", // Door D locks the Boss $
+                "#.#####.###D###.#######", 
                 "#.........H...........#", 
                 "#######################" 
             ]
-        ];
-
-        // FIXED LEVEL 2 DATA OVERRIDE
-        LEVELS[1] = [
-            "#######################",
-            "#@....#.......#...E...#",
-            "#####.#.......#.......#",
-            "#.....#.......#...E...#",
-            "#..E..#...D...>.......#", // Door D connects Left to Right Exit >
-            "#.....#.......#########",
-            "#####.#.......#.......#",
-            "#K....#.......#.......#", // Key K is on the Left side (accessible)
-            "#######################"
         ];
 
         function initGame() {
@@ -384,7 +365,7 @@
 
         function updateEnemies() {
             moveTimer++;
-            if (moveTimer > 60) { // Faster enemies
+            if (moveTimer > 80) { 
                 moveTimer = 0;
                 items.forEach(item => {
                     if (item.isMoving) {
