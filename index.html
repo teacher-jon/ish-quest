@@ -71,8 +71,7 @@
 <body>
 
     <div id="start-overlay">
-        <div id="start-text">CLICK TO START</div>
-        <div style="font-size: 14px; margin-top: 20px; color: #aaa;">(Make sure sound is on)</div>
+        <div id="start-text">CLICK TO START GAME</div>
     </div>
 
     <div class="hud">
@@ -104,12 +103,10 @@
         background: [20, 20, 30], 
         scale: 2, 
         canvas: document.querySelector("canvas"),
-        // This helps prevent crash loops if assets fail
         burp: true, 
     });
 
     // 2. LOAD ASSETS
-    // We use a "try/catch" approach internally by Kaboom to prevent total crashes
     loadSprite("hero", "images/hero.png");
     loadSprite("wall", "images/wall.png");
     loadSprite("floor", "images/floor.png");
@@ -143,6 +140,18 @@
             "#...........#.......#",
             "#...@.......#...4...#",
             "#####################",
+        ],
+        [
+            "#####################",
+            "#...................#",
+            "#...#...#...#...#...#",
+            "#...#...#...#...#...#",
+            "#...5.......6.......#",
+            "#...................#",
+            "#.........$.........#", 
+            "#...................#",
+            "#.........@.........#",
+            "#####################",
         ]
     ];
 
@@ -158,7 +167,8 @@
 
     const NPC_DIALOGS = {
         0: "Welcome Hero! To defeat monsters, you must combine the base word with the suffix '-ish'.",
-        1: "The forest is dark. Watch your step! Monsters here will test your spelling."
+        1: "The forest is dark. Watch your step! Monsters here will test your spelling.",
+        2: "This is the final chamber. The boss is very squeamish... oops, I gave you a hint!" 
     };
 
     // --- MAIN GAME SCENE ---
@@ -167,9 +177,8 @@
         const levelDisplay = document.getElementById("level-display");
         if(levelDisplay) levelDisplay.innerText = "Level " + (levelIdx + 1);
 
-        // --- THE "SLIM FIT" FIX ---
-        // We force the sprites into 16x16 squares.
-        // We shrink the area to 0.6 so black backgrounds don't get stuck in walls.
+        // --- THE STUCK IN WALL FIX ---
+        // We force sprites to 16x16 and shrink the collision box
         const T_SIZE = 16;
         
         const LEVEL_CONFIG = {
@@ -180,7 +189,7 @@
                 ".": () => [ sprite("floor", {width:T_SIZE, height:T_SIZE}) ],
                 ">": () => [ sprite("stairs", {width:T_SIZE, height:T_SIZE}), area(), body({isStatic:true}), "stairs" ],
                 
-                // HERO FIX: Scale area to 0.6
+                // HERO FIX: Scale area to 0.6 so you can walk through halls
                 "@": () => [ 
                     sprite("hero", {width:T_SIZE, height:T_SIZE}), 
                     area({ scale: 0.6 }), 
@@ -196,6 +205,8 @@
                 "2": () => [ sprite("enemy", {width:T_SIZE, height:T_SIZE}), area({scale:0.7}), body({isStatic:true}), anchor("center"), "enemy", { id: "2" } ],
                 "3": () => [ sprite("enemy", {width:T_SIZE, height:T_SIZE}), area({scale:0.7}), body({isStatic:true}), anchor("center"), "enemy", { id: "3" } ],
                 "4": () => [ sprite("enemy", {width:T_SIZE, height:T_SIZE}), area({scale:0.7}), body({isStatic:true}), anchor("center"), "enemy", { id: "4" } ],
+                "5": () => [ sprite("enemy", {width:T_SIZE, height:T_SIZE}), area({scale:0.7}), body({isStatic:true}), anchor("center"), "enemy", { id: "5" } ],
+                "6": () => [ sprite("enemy", {width:T_SIZE, height:T_SIZE}), area({scale:0.7}), body({isStatic:true}), anchor("center"), "enemy", { id: "6" } ],
                 "$": () => [ sprite("boss", {width:32, height:32}), area({scale:0.7}), body({isStatic:true}), anchor("center"), "boss", { id: "$" } ]
             }
         };
@@ -260,7 +271,6 @@
         }
     }
 
-    // Function to safely close the modal
     function closeModal() {
         document.getElementById("ui-layer").style.display = "none";
         debug.paused = false; 
@@ -288,14 +298,18 @@
         }
     }
 
-    // --- EVENT LISTENERS (The "No ReferenceError" Fix) ---
-    // We attach these via JS to ensure they exist before use
-    document.getElementById("start-overlay").addEventListener("click", () => {
-        document.getElementById("start-overlay").style.display = "none";
-        // Start audio context usually requires user interaction
-        burp(); 
-        go("game", { levelIdx: 0 });
-    });
+    // --- THE FIX: EVENT LISTENERS ---
+    // Instead of using 'onclick' in HTML, we add the logic here.
+    // This prevents the "startGame is not defined" error.
+    
+    const startOverlay = document.getElementById("start-overlay");
+    if(startOverlay) {
+        startOverlay.addEventListener("click", () => {
+            startOverlay.style.display = "none";
+            burp(); // Sound check
+            go("game", { levelIdx: 0 });
+        });
+    }
 
     document.getElementById("attack-btn").addEventListener("click", checkAnswer);
     document.getElementById("close-btn").addEventListener("click", closeModal);
