@@ -105,14 +105,12 @@
     // 1. INITIALIZE ENGINE
     kaboom({
         background: [15, 15, 20], 
-        scale: 2, // Zoom level
+        scale: 3, // Zoomed in more so it's easier to see
         canvas: document.querySelector("canvas"), 
         crisp: true,
-        debug: true, // Allow F1 key to show hitboxes (Good for debugging)
     });
 
     // 2. LOAD ASSETS
-    // IMPORTANT: Even if your images are 1000px big, we will shrink them later.
     loadSprite("hero", "images/hero.png");
     loadSprite("wall", "images/wall.png");
     loadSprite("floor", "images/floor.png");
@@ -185,16 +183,14 @@
         const levelDisplay = document.getElementById("level-display");
         if(levelDisplay) levelDisplay.innerText = "Level " + (levelIdx + 1);
 
-        // --- GRID CONFIGURATION (THE FIX) ---
-        // We set tileWidth to 16.
-        // We force every sprite to { width: 16, height: 16 } so they fit perfectly.
+        // --- GRID CONFIGURATION ---
         const T_SIZE = 16;
 
         const LEVEL_CONFIG = {
             tileWidth: T_SIZE,
             tileHeight: T_SIZE,
             tiles: {
-                // WALL: Static body, force size 16x16
+                // WALL: 
                 "#": () => [ 
                     sprite("wall", { width: T_SIZE, height: T_SIZE }), 
                     area(), 
@@ -202,12 +198,12 @@
                     "wall" 
                 ], 
                 
-                // FLOOR: Just visual, force size 16x16
+                // FLOOR: 
                 ".": () => [ 
                     sprite("floor", { width: T_SIZE, height: T_SIZE }) 
                 ],
                 
-                // STAIRS: Static trigger, force size 16x16
+                // STAIRS: 
                 ">": () => [ 
                     sprite("stairs", { width: T_SIZE, height: T_SIZE }), 
                     area(), 
@@ -215,10 +211,12 @@
                     "stairs" 
                 ],
                 
-                // HERO: Dynamic body, slightly smaller hitbox (scale 0.8) to prevent sticking
+                // --- HERO FIX ---
+                // We use 'area({ scale: 0.6 })' to make the collision box smaller than the image.
+                // This lets you walk even if your image has a black background!
                 "@": () => [ 
                     sprite("hero", { width: T_SIZE, height: T_SIZE }), 
-                    area({ scale: 0.8 }), 
+                    area({ scale: 0.6 }), // <--- THE MAGIC FIX
                     body(), 
                     anchor("center"), 
                     "player" 
@@ -227,22 +225,22 @@
                 // NPC
                 "N": () => [ 
                     sprite("npc", { width: T_SIZE, height: T_SIZE }), 
-                    area(), 
+                    area({ scale: 0.8 }), 
                     body({ isStatic: true }), 
                     anchor("center"), 
                     "npc" 
                 ],
                 
-                // ENEMIES
-                "1": () => [ sprite("enemy", { width: T_SIZE, height: T_SIZE }), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "1" } ],
-                "2": () => [ sprite("enemy", { width: T_SIZE, height: T_SIZE }), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "2" } ],
-                "3": () => [ sprite("enemy", { width: T_SIZE, height: T_SIZE }), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "3" } ],
-                "4": () => [ sprite("enemy", { width: T_SIZE, height: T_SIZE }), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "4" } ],
-                "5": () => [ sprite("enemy", { width: T_SIZE, height: T_SIZE }), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "5" } ],
-                "6": () => [ sprite("enemy", { width: T_SIZE, height: T_SIZE }), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "6" } ],
+                // ENEMIES (Also smaller hitboxes)
+                "1": () => [ sprite("enemy", { width: T_SIZE, height: T_SIZE }), area({ scale: 0.7 }), body({ isStatic: true }), anchor("center"), "enemy", { id: "1" } ],
+                "2": () => [ sprite("enemy", { width: T_SIZE, height: T_SIZE }), area({ scale: 0.7 }), body({ isStatic: true }), anchor("center"), "enemy", { id: "2" } ],
+                "3": () => [ sprite("enemy", { width: T_SIZE, height: T_SIZE }), area({ scale: 0.7 }), body({ isStatic: true }), anchor("center"), "enemy", { id: "3" } ],
+                "4": () => [ sprite("enemy", { width: T_SIZE, height: T_SIZE }), area({ scale: 0.7 }), body({ isStatic: true }), anchor("center"), "enemy", { id: "4" } ],
+                "5": () => [ sprite("enemy", { width: T_SIZE, height: T_SIZE }), area({ scale: 0.7 }), body({ isStatic: true }), anchor("center"), "enemy", { id: "5" } ],
+                "6": () => [ sprite("enemy", { width: T_SIZE, height: T_SIZE }), area({ scale: 0.7 }), body({ isStatic: true }), anchor("center"), "enemy", { id: "6" } ],
                 
-                // BOSS: Bigger (32x32)
-                "$": () => [ sprite("boss", { width: 32, height: 32 }), area(), body({ isStatic: true }), anchor("center"), "boss", { id: "$" } ]
+                // BOSS: Bigger 
+                "$": () => [ sprite("boss", { width: 32, height: 32 }), area({ scale: 0.7 }), body({ isStatic: true }), anchor("center"), "boss", { id: "$" } ]
             }
         };
 
@@ -351,11 +349,8 @@
         if (event.key === "Enter") { window.checkAnswer(); }
     });
 
-    // --- CLICK TO START HANDLER ---
-    // This ensures audio context and input focus are ready
     window.startGame = function() {
         document.getElementById("start-overlay").style.display = "none";
-        // Start the game loop
         go("game", { levelIdx: 0 });
     }
 
