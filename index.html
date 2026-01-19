@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Suffixia: Fixed Level 2</title>
+    <title>Suffixia: Gold Edition</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body { 
@@ -154,7 +154,7 @@
         const CANVAS = document.getElementById("gameCanvas");
         const CTX = CANVAS.getContext("2d");
 
-        // --- 2. AUDIO ENGINE (Safe Mode) ---
+        // --- 2. AUDIO ENGINE ---
         const Audio = {
             ctx: null,
             active: false,
@@ -257,7 +257,7 @@
         let items = [];
         let moveTimer = 0;
 
-        // --- 6. LEVELS (FIXED LEVEL 2) ---
+        // --- 6. LEVELS (FINAL FIX) ---
         const LEVELS = [
             // LEVEL 1: TUTORIAL
             [ 
@@ -273,32 +273,29 @@
                 "####################" 
             ],
             
-            // LEVEL 2: THE BRIDGE (Redesigned for guaranteed solvability)
-            // Left Side: Start @, Key K, Potion P
-            // Middle: Wall # with Door D
-            // Right Side: Exit >
+            // LEVEL 2: THE BRIDGE (Working)
             [
                 "#######################",
                 "#@........#...........#", 
                 "#.........#...........#",
                 "#...E.....#.....E.....#",
-                "#.........D...........#", // Door connects the two rooms
-                "#...K.....#...........#", // Key is clearly in the starting room
+                "#.........D...........#", 
+                "#...K.....#...........#", // Key in start room
                 "#.........#......>....#", 
                 "#.........#...........#",
                 "#######################"
             ],
             
-            // LEVEL 3: THE ARENA
+            // LEVEL 3: THE THRONE ROOM (Fixed Key Location)
             [ 
                 "#######################", 
-                "#@....................#", 
-                "#######.#######.#######", 
-                "#.....#.#.....#.#.....#", 
-                "#..E..#.#..$..#.#..K..#", 
-                "#.....#.#.....#.#.....#", 
-                "#.#####.###D###.#######", 
-                "#.........H...........#", 
+                "#@.................K..#", // Key at Top Right (Unblocked)
+                "#..#################..#", // Inner Wall
+                "#..#...............#..#",
+                "#..#...E...$.......#..#", // Boss
+                "#..#...............#..#",
+                "#..#######...#######..#",
+                "#..........D..........#", // Door blocks entry to boss
                 "#######################" 
             ]
         ];
