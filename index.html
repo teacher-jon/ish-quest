@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>The Legend of Suffixia</title>
+    <meta charset="utf-8">
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #202028; font-family: 'Verdana', sans-serif; }
+        
+        /* The Question Box Overlay */
+        #ui-layer {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border: 4px solid #4a90e2;
+            border-radius: 10px;
+            text-align: center;
+            display: none; /* Hidden by default */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            width: 300px;
+        }
+        input { padding: 10px; font-size: 16px; width: 80%; margin-top: 10px; }
+        button { padding: 10px 20px; font-size: 16px; margin-top: 10px; background: #4a90e2; color: white; border: none; cursor: pointer; }
+        button:hover { background: #357abd; }
+        .instructions { position: absolute; bottom: 10px; left: 10px; color: white; opacity: 0.7; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <h2 id="question-text">Question goes here</h2>
+        <input type="text" id="answer-input" placeholder="Type answer...">
+        <br>
+        <button onclick="checkAnswer()">Attack!</button>
+        <p id="feedback" style="font-weight: bold; color: red;"></p>
+    </div>
+
+    <div class="instructions">Use ARROW KEYS to move. Touch enemies to battle.</div>
+
+    <script src="https://unpkg.com/kaboom@3000.0.1/dist/kaboom.js"></script>
+
+    <script>
+    // 1. Initialize the Game
+    kaboom({
+        background: [80, 160, 80], // Green grass color
+        scale: 2, // Make everything bigger
+    });
+
+    // 2. Define Graphics (Using Emojis as Sprites so no downloads needed!)
+    loadSprite("hero", "https://ui-avatars.com/api/?name=Link&background=0D8ABC&color=fff&size=64&font-size=0.5"); 
+    
+    // We define "Tiles" for the map
+    const LEVEL_CONFIG = {
+        tileWidth: 48,
+        tileHeight: 48,
+        tiles: {
+            "=": () => [ text("🌲"), area(), body({ isStatic: true }), anchor("center"), "wall" ], // Tree
+            "#": () => [ rect(48, 48), color(100, 100, 100), area(), body({ isStatic: true }), "wall" ], // Rock Wall
+            "^": () => [ text("🏠"), area(), body({ isStatic: true }), anchor("center"), "house" ], // House
+            "@": () => [ text("🧝"), area(), body(), anchor("center"), "player" ], // Player Start
+            "!": () => [ text("👹"), area(), body({ isStatic: true }), anchor("center"), "enemy", { 
+                word: "childish", 
+                clue: "This monster acts like a baby! (Child + ish)" 
+            }],
+            "?": () => [ text("👻"), area(), body({ isStatic: true }), anchor("center"), "enemy", { 
+                word: "reddish", 
+                clue: "This ghost isn't quite red... it's just..." 
+            }],
+            "$": () => [ text("🧙"), area(), body({ isStatic: true }), anchor("center"), "boss", { 
+                word: "foolish", 
+                clue: "BOSS: He acts like a fool! He is..." 
+            }]
+        }
+    };
+
+    // 3. Draw the Map (Visual Layout)
+    const level = addLevel([
+        "################",
+        "#              #",
+        "#   ^          #",
+        "#      !       #",
+        "#              #",
+        "#   =      =   #",
+        "#       @      #",
+        "#   =      =   #",
+        "#       ?      #",
+        "#              #",
+        "#              #",
+        "#      $       #",
+        "################",
+    ], LEVEL_CONFIG);
+
+    // 4. Add the Player Character
+    const player = add([
+        text("🧝"), // Using an Elf emoji as the player
+        pos(center()),
+        area(), // Enables collision detection
+        body(), // Gives the player physics (so they can't walk through walls)
+        anchor("center"),
+        "hero"
+    ]);
+
+    // 5. Movement Logic
+    const SPEED = 200;
+    onKeyDown("left", () => player.move(-SPEED, 0));
+    onKeyDown("right", () => player.move(SPEED, 0));
+    onKeyDown("up", () => player.move(0, -SPEED));
+    onKeyDown("down", () => player.move(0, SPEED));
+
+    // 6. Camera follows player
+    player.onUpdate(() => {
+        camPos(player.pos);
+    });
+
+    // --- GAMEPLAY LOGIC ---
+
+    let currentEnemy = null; // Remembers who we are fighting
+
+    // When player collides with an "enemy" tag
+    player.onCollide("enemy", (enemy) => {
+        startBattle(enemy);
+    });
+
+    player.onCollide("boss", (boss) => {
+        startBattle(boss);
+    });
+
+    function startBattle(enemy) {
+        currentEnemy = enemy;
+        // Pause the game
+        debug.paused = true;
+        
+        // Show the HTML Question Box
+        const ui = document.getElementById("ui-layer");
+        const qText = document.getElementById("question-text");
+        const feedback = document.getElementById("feedback");
+        const input = document.getElementById("answer-input");
+
+        ui.style.display = "block";
+        qText.innerText = enemy.clue;
+        feedback.innerText = "";
+        input.value = "";
+        input.focus();
+    }
+
+    // Function called by the HTML button
+    window.checkAnswer = function() {
+        const input = document.getElementById("answer-input");
+        const ui = document.getElementById("ui-layer");
+        const feedback = document.getElementById("feedback");
+
+        if (input.value.toLowerCase().trim() === currentEnemy.word) {
+            // Correct!
+            currentEnemy.destroy(); // Remove enemy from screen
+            ui.style.display = "none"; // Hide box
+            debug.paused = false; // Unpause game
+            shake(10); // Screen shake effect
+        } else {
+            // Incorrect
+            feedback.innerText = "Wrong! Try again.";
+            shake(5);
+        }
+    }
+
+    </script>
+</body>
+</html>
