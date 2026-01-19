@@ -1,67 +1,75 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Suffixia: The Challenge</title>
+    <title>Suffixia: Dungeon Crawler Edition</title>
     <style>
         body { 
             margin: 0; 
-            background: #0d0d0d; 
+            background: #050505; 
             overflow: hidden; 
-            font-family: 'Courier New', Courier, monospace; 
+            font-family: 'Verdana', sans-serif; 
             color: white; 
         }
         
         canvas { 
             display: block; 
-            background: #111; 
+            background: #000; 
         }
         
+        /* HUD (Heads Up Display) */
+        #hud {
+            position: absolute; top: 10px; left: 10px;
+            background: rgba(0,0,0,0.7); padding: 10px; border-radius: 8px;
+            border: 1px solid #444; pointer-events: none;
+            display: flex; gap: 20px; font-size: 20px; font-weight: bold;
+        }
+        .hud-item { display: flex; align-items: center; gap: 8px; }
+
         /* UI OVERLAY */
         #ui-layer {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(15, 15, 20, 0.98); 
+            background: rgba(20, 20, 30, 0.98); 
             color: #eee; 
             padding: 40px; 
-            border: 2px solid #6c5ce7;
-            border-radius: 10px;
+            border: 3px solid #6c5ce7;
+            border-radius: 15px;
             text-align: center; 
             display: none; 
-            width: 500px;
-            box-shadow: 0 0 100px rgba(108, 92, 231, 0.4);
-            font-size: 18px;
+            width: 550px;
+            box-shadow: 0 0 80px rgba(108, 92, 231, 0.5);
         }
 
-        h2#ui-title { margin-top: 0; color: #a29bfe; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #444; padding-bottom: 10px;}
+        h2#ui-title { margin-top: 0; color: #a29bfe; text-transform: uppercase; letter-spacing: 2px; border-bottom: 2px solid #444; padding-bottom: 15px;}
         p#ui-text { font-size: 20px; line-height: 1.6; margin: 20px 0; }
 
         input { 
-            padding: 15px; font-size: 20px; text-align: center; width: 80%; margin-top: 15px;
-            background: #2d3436; border: 2px solid #636e72; color: white; border-radius: 5px;
-            outline: none;
+            padding: 15px; font-size: 22px; text-align: center; width: 80%; margin-top: 15px;
+            background: #2d3436; border: 2px solid #636e72; color: white; border-radius: 8px; outline: none;
         }
         input:focus { border-color: #a29bfe; }
         
         button { 
             padding: 12px 30px; font-size: 18px; cursor: pointer; margin-top: 25px;
-            background: #6c5ce7; color: white; border: none; border-radius: 5px; font-weight: bold;
+            background: #6c5ce7; color: white; border: none; border-radius: 8px; font-weight: bold;
             transition: all 0.2s;
         }
         button:hover { background: #81ecec; color: black; transform: scale(1.05); }
         
         #loading { 
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            font-size: 24px; font-weight: bold; color: #a29bfe;
+            font-size: 24px; font-weight: bold; color: #a29bfe; letter-spacing: 4px;
         }
-
-        /* BOSS MODE STYLING */
-        .boss-mode { border-color: #d63031 !important; box-shadow: 0 0 100px rgba(214, 48, 49, 0.4) !important; }
-        .boss-mode h2 { color: #ff7675 !important; }
-        .boss-mode button { background: #d63031 !important; }
     </style>
 </head>
 <body>
 
-    <div id="loading">LOADING EXPANDED WORLD...</div>
+    <div id="loading">GENERATING DUNGEON...</div>
+    
+    <div id="hud">
+        <div class="hud-item">🔑 <span id="key-count">0</span></div>
+        <div class="hud-item">🧪 <span id="potion-status">OFF</span></div>
+    </div>
+
     <canvas id="gameCanvas"></canvas>
 
     <div id="ui-layer">
@@ -71,7 +79,7 @@
         <div id="battle-ui" style="display:none">
             <input type="text" id="answer" placeholder="Type answer..." autocomplete="off">
             <br>
-            <button onclick="checkAnswer()">SUBMIT ANSWER</button>
+            <button onclick="checkAnswer()">CAST SPELL</button>
         </div>
         
         <button id="close-btn" onclick="closeUI()" style="display:none">CONTINUE</button>
@@ -84,63 +92,7 @@
         const CANVAS = document.getElementById("gameCanvas");
         const CTX = CANVAS.getContext("2d");
 
-        // --- 2. HUGE QUESTION BANK ---
-        // We use arrays so we can pick random questions every time
-        
-        const REGULAR_QUESTIONS = [
-            { a: "greenish", q: "Something that is somewhat green." },
-            { a: "boyish", q: "Having the characteristics of a boy." },
-            { a: "girlish", q: "Resembling or characteristic of a girl." },
-            { a: "childish", q: "Silly and immature, like a child." },
-            { a: "ticklish", q: "Sensitive to being tickled." },
-            { a: "feverish", q: "Showing symptoms of a fever." },
-            { a: "stylish", q: "Fashionable and elegant." },
-            { a: "foolish", q: "Lacking good sense or judgment." },
-            { a: "selfish", q: "Caring only about oneself." },
-            { a: "pinkish", q: "A color that is slightly pink." },
-            { a: "sweetish", q: "Tasting somewhat sweet." },
-            { a: "tallish", q: "Somewhat tall, but not giant." },
-            { a: "darkish", q: "Somewhat dark." },
-            { a: "coldish", q: "Slightly cold." },
-            { a: "oldish", q: "Somewhat old." },
-            { a: "youngish", q: "Somewhat young." },
-            { a: "newish", q: "Somewhat new." },
-            { a: "wildish", q: "Somewhat wild or untamed." },
-            { a: "mildish", q: "Somewhat mild." },
-            { a: "dampish", q: "Slightly wet or damp." },
-            { a: "warmish", q: "Slightly warm." },
-            { a: "slowish", q: "Somewhat slow." },
-            { a: "fastish", q: "Somewhat fast." },
-            { a: "flatish", q: "Somewhat flat." },
-            { a: "roundish", q: "Somewhat round." },
-            { a: "shortish", q: "Somewhat short." },
-            { a: "longish", q: "Somewhat long." },
-            { a: "goodish", q: "Fairly good, but not great." },
-            { a: "badish", q: "Somewhat bad." },
-            { a: "hardish", q: "Somewhat hard." },
-            { a: "softish", q: "Somewhat soft." },
-            { a: "sheepish", q: "Showing embarrassment from shame or a lack of self-confidence." },
-            { a: "bookish", q: "Devoted to reading and studying." },
-            { a: "owlishes", q: "Looking solemn or wise like an owl." },
-            { a: "modish", q: "Conforming to a popular fashion." },
-            { a: "sluggish", q: "Slow-moving or inactive." },
-            { a: "peckish", q: "Hungry." },
-            { a: "squeamish", q: "Easily made to feel sick or disgusted." },
-            { a: "clownish", q: "Acting in a funny or foolish way." },
-            { a: "waspish", q: "Readily expressing anger or irritation." }
-            // Add as many as you want here!
-        ];
-
-        // Boss questions require synthesis/analysis
-        const BOSS_QUESTIONS = [
-            { a: "adjective", q: "In the word 'Childish', what part of speech does the suffix '-ish' create?" },
-            { a: "quality of", q: "Does the suffix '-ish' usually mean 'without' or 'quality of'?" },
-            { a: "noun", q: "To make the word 'Foolish', do you attach '-ish' to a Noun or a Verb?" },
-            { a: "somewhat", q: "In the word 'Greenish', does the suffix mean 'very' or 'somewhat'?" },
-            { a: "approximation", q: "When used with numbers (like 'sevenish'), does '-ish' imply precision or approximation?" }
-        ];
-
-        // --- 3. ASSETS ---
+        // --- 2. ASSETS & GRAPHICS ---
         const ASSETS = {
             "@": "images/hero.png",
             "#": "images/wall.png",
@@ -149,7 +101,9 @@
             ">": "images/stairs.png",
             "E": "images/enemy.png",
             "$": "images/boss.png"
+            // Keys, Potions, Doors are drawn with Code/Emojis to ensure they always appear
         };
+
         const IMAGES = {};
         let assetsLoaded = 0;
         const totalAssets = Object.keys(ASSETS).length;
@@ -171,60 +125,97 @@
             }
         }
 
-        // --- 4. GAME ENGINE ---
+        // --- 3. QUESTION BANK ---
+        const REGULAR_QUESTIONS = [
+            { a: "greenish", q: "Somewhat green." }, { a: "boyish", q: "Like a boy." },
+            { a: "girlish", q: "Like a girl." }, { a: "childish", q: "Immature; like a child." },
+            { a: "ticklish", q: "Sensitive to tickling." }, { a: "feverish", q: "Having a fever." },
+            { a: "stylish", q: "Fashionable." }, { a: "foolish", q: "Lacking sense." },
+            { a: "selfish", q: "Caring only for self." }, { a: "pinkish", q: "Slightly pink." },
+            { a: "sweetish", q: "Somewhat sweet." }, { a: "tallish", q: "Somewhat tall." },
+            { a: "darkish", q: "Somewhat dark." }, { a: "coldish", q: "Slightly cold." },
+            { a: "oldish", q: "Somewhat old." }, { a: "youngish", q: "Somewhat young." },
+            { a: "wildish", q: "Somewhat wild." }, { a: "dampish", q: "Slightly wet." },
+            { a: "warmish", q: "Slightly warm." }, { a: "slowish", q: "Somewhat slow." },
+            { a: "fastish", q: "Somewhat fast." }, { a: "flatish", q: "Somewhat flat." },
+            { a: "roundish", q: "Somewhat round." }, { a: "shortish", q: "Somewhat short." },
+            { a: "longish", q: "Somewhat long." }, { a: "goodish", q: "Fairly good." },
+            { a: "badish", q: "Somewhat bad." }, { a: "hardish", q: "Somewhat hard." },
+            { a: "softish", q: "Somewhat soft." }, { a: "sheepish", q: "Embarrassed or shy." },
+            { a: "bookish", q: "Fond of reading." }, { a: "owlishes", q: "Wise like an owl." },
+            { a: "modish", q: "Trendy." }, { a: "sluggish", q: "Slow-moving." },
+            { a: "peckish", q: "Hungry." }, { a: "squeamish", q: "Easily nauseated." },
+            { a: "clownish", q: "Funny or silly." }, { a: "waspish", q: "Angry or irritable." }
+        ];
+
+        const BOSS_QUESTIONS = [
+            { a: "adjective", q: "Does the suffix '-ish' turn a noun into a Verb or Adjective?" },
+            { a: "quality of", q: "Does '-ish' mean 'without' or 'having the quality of'?" },
+            { a: "noun", q: "To make 'Foolish', do you add -ish to a Noun or Verb?" },
+            { a: "somewhat", q: "In 'Greenish', does it mean 'very' or 'somewhat'?" },
+            { a: "approximation", q: "In 'Seven-ish', does it imply precision or approximation?" }
+        ];
+
+        // --- 4. GAME STATE ---
         let player = { x: 1, y: 1 };
+        let inventory = { keys: 0, vision: false };
         let levelIdx = 0;
         let isPaused = false;
         let currentEnemy = null;
         let walls = [];
         let items = [];
-        let moveTimer = 0; // For enemy auto-movement
+        let moveTimer = 0;
 
-        // EXPANDED LEVELS (More Enemies 'E' and Hidden Spots 'H')
+        // --- 5. LEVEL DESIGN ---
+        // K = Key, D = Locked Door, P = Potion, S = Secret Wall (Walkable), H = Hidden Trap
         const LEVELS = [
+            // LEVEL 1: The Training Grounds
             [
                 "####################",
                 "#@.................#",
-                "#.N...H............#", // H = Hidden Enemy
-                "#.......#....E.....#",
-                "#.......#..........#",
+                "#.N...H............#", 
+                "#######D############", // Door blocks path
+                "#...........E..K...#", // Key guarded by Enemy
+                "#...P.......#......#", // Potion
                 "#...#.......E......#",
-                "#...#..............#",
                 "#...#...E....>.....#",
                 "#...#..............#",
                 "####################"
             ],
+            // LEVEL 2: The Whispering Halls
             [
-                "####################",
-                "#@..E...#...E......#",
-                "#H......#.......#..#",
-                "###.#####...#####..#",
-                "#.......E.......#..#",
-                "#.N........H....#..#",
-                "#########...#####..#",
-                "#..E........#...E..#",
-                "#......H....#...>..#",
-                "####################"
+                "#######################",
+                "#@..E...#...E....D....#",
+                "#.......#.......###...#",
+                "###.#####...#####K#...#", // Key in a nook
+                "#.......E.......#.....#",
+                "#.N........H....#.....#",
+                "#########S#######.....#", // Secret Wall shortcut
+                "#..E........#...E.....#",
+                "#K.....H....#...>.....#", // Another key
+                "#######################"
             ],
+            // LEVEL 3: The Boss Dungeon
             [
-                "####################",
-                "#..................#",
-                "#.@.#...#...#...#..#",
-                "#...#...#...#...#..#",
-                "#...E.......E......#",
-                "#..................#",
-                "#....E....$....E...#",
-                "#..................#",
-                "#.........H........#",
-                "####################"
+                "#######################",
+                "#.....................#",
+                "#.@.#####D#######.K...#",
+                "#...#...#...#...#.....#",
+                "#...E...S...E...#.....#", // Secret passage in middle
+                "#...#...#...#...#.....#",
+                "#.......#$#.....E.....#", // Boss Guarded
+                "#.......#D#...........#", // Locked boss door
+                "#.........H...........#",
+                "#######################"
             ]
         ];
 
         function loadLevel(idx) {
             levelIdx = idx;
             if (levelIdx >= LEVELS.length) {
-                alert("CONGRATULATIONS! YOU HAVE MASTERED SUFFIXIA!");
+                alert("YOU HAVE CONQUERED SUFFIXIA!");
                 levelIdx = 0;
+                inventory = { keys: 0, vision: false }; // Reset
             }
 
             const map = LEVELS[levelIdx];
@@ -238,29 +229,28 @@
                     if (char === "#") walls.push({x, y});
                     else if (char === "@") { player.x = x; player.y = y; }
                     else if (char === "E" || char === "$" || char === "H") {
-                        // Pick random question
                         let pool = (char === "$") ? BOSS_QUESTIONS : REGULAR_QUESTIONS;
                         let qData = pool[Math.floor(Math.random() * pool.length)];
-                        
-                        // 'H' is hidden, so we mark it, but it looks like floor
-                        let type = char;
-                        if (char === "H") type = "H"; 
-
                         items.push({ 
-                            x, y, type: type, 
-                            quest: qData, 
-                            id: Math.random(),
-                            isMoving: (char === "E") // Only E moves
+                            x, y, type: char, quest: qData, id: Math.random(),
+                            isMoving: (char === "E") 
                         });
                     } 
-                    else if (char === "N" || char === ">") {
+                    else if ("KDP>NS".includes(char)) {
                         items.push({ x, y, type: char, id: Math.random() });
                     }
                 }
             }
+            updateHUD();
         }
 
-        // --- 5. GAME LOOP ---
+        function updateHUD() {
+            document.getElementById("key-count").innerText = inventory.keys;
+            document.getElementById("potion-status").innerText = inventory.vision ? "ON" : "OFF";
+            document.getElementById("potion-status").style.color = inventory.vision ? "#55efc4" : "#636e72";
+        }
+
+        // --- 6. GAME LOOP ---
         function gameLoop() {
             if(!isPaused) {
                 updateEnemies();
@@ -271,18 +261,14 @@
 
         function updateEnemies() {
             moveTimer++;
-            // Move enemies every 60 frames (approx 1 second)
-            if (moveTimer > 60) {
+            if (moveTimer > 80) { // Slower movement
                 moveTimer = 0;
                 items.forEach(item => {
                     if (item.isMoving) {
-                        // Random movement
                         let dirs = [[0,1], [0,-1], [1,0], [-1,0]];
                         let move = dirs[Math.floor(Math.random() * dirs.length)];
                         let nx = item.x + move[0];
                         let ny = item.y + move[1];
-
-                        // Check collisions for enemy
                         if (!isWall(nx, ny) && !isPlayer(nx, ny) && !isItem(nx, ny)) {
                             item.x = nx;
                             item.y = ny;
@@ -296,13 +282,13 @@
         function isPlayer(x, y) { return player.x === x && player.y === y; }
         function isItem(x, y) { return items.some(i => i.x === x && i.y === y); }
 
-        // --- 6. DRAWING ---
+        // --- 7. DRAWING ---
         function draw() {
             CANVAS.width = window.innerWidth;
             CANVAS.height = window.innerHeight;
             CTX.imageSmoothingEnabled = false;
 
-            CTX.fillStyle = "#0d0d0d";
+            CTX.fillStyle = "#050505";
             CTX.fillRect(0, 0, CANVAS.width, CANVAS.height);
 
             let offsetX = (CANVAS.width / 2) - (player.x * TILE_SIZE) - (TILE_SIZE / 2);
@@ -322,10 +308,12 @@
             }
 
             // Draw Items
-            const bob = Math.sin(Date.now() / 200) * 3;
+            const bob = Math.sin(Date.now() / 200) * 5;
             items.forEach(item => {
-                if (item.type === "H") {
-                    // Hidden enemies look like floor! Do not draw anything special.
+                if (item.type === "H" && !inventory.vision) {
+                    // Invisible trap!
+                } else if (item.type === "S") {
+                    drawTile(item.x, item.y, "S", 0); // Secret wall visual
                 } else {
                     let yOffset = (item.type === "E" || item.type === "N" || item.type === "$") ? bob : 0;
                     drawTile(item.x, item.y, item.type, yOffset);
@@ -339,27 +327,40 @@
         }
 
         function drawTile(x, y, type, yOffset) {
-            const img = IMAGES[type];
             const px = x * TILE_SIZE;
             const py = (y * TILE_SIZE) + yOffset;
+            const img = IMAGES[type];
 
+            // 1. Draw Images
             if (img && img.complete && img.naturalHeight !== 0) {
                 CTX.drawImage(img, px, py, TILE_SIZE, TILE_SIZE);
-            } else {
-                // Fallbacks
-                if (type === "#") CTX.fillStyle = "#444";
-                else if (type === ".") CTX.fillStyle = "#222";
-                else if (type === "@") CTX.fillStyle = "#6c5ce7";
-                else if (type === "E") CTX.fillStyle = "#d63031";
-                else if (type === "$") CTX.fillStyle = "#a29bfe";
-                else if (type === ">") CTX.fillStyle = "#ffeaa7";
-                else CTX.fillStyle = "#55efc4";
-                
-                CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-            }
+                return;
+            } 
+            
+            // 2. Draw Code-Generated Items (Keys, Doors, etc)
+            // Background
+            if (type === "#") { CTX.fillStyle = "#444"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); return; }
+            if (type === ".") { CTX.fillStyle = "#111"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); return; }
+            
+            // Special Items with Emojis
+            CTX.font = (TILE_SIZE * 0.7) + "px Arial";
+            CTX.textAlign = "center";
+            CTX.textBaseline = "middle";
+            let cx = px + TILE_SIZE/2;
+            let cy = py + TILE_SIZE/2;
+
+            if (type === "K") { CTX.fillText("🔑", cx, cy); }
+            else if (type === "D") { CTX.fillStyle = "#a65c00"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); CTX.fillStyle="white"; CTX.fillText("🔒", cx, cy); }
+            else if (type === "P") { CTX.fillText("🧪", cx, cy); }
+            else if (type === "S") { CTX.fillStyle = "#333"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); CTX.fillStyle="#555"; CTX.fillText("?", cx, cy); } // Secret Wall
+            else if (type === "H") { CTX.fillText("⚠️", cx, cy); } // Visible trap
+            else if (type === "@") { CTX.fillStyle = "#6c5ce7"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
+            else if (type === "E") { CTX.fillStyle = "#d63031"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
+            else if (type === ">") { CTX.fillStyle = "#ffeaa7"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
+            else { CTX.fillStyle = "green"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
         }
 
-        // --- 7. PLAYER MOVEMENT ---
+        // --- 8. MOVEMENT & INTERACTION ---
         window.addEventListener("keydown", (e) => {
             if (isPaused) return;
             let dx = 0, dy = 0;
@@ -372,18 +373,48 @@
                 let nx = player.x + dx;
                 let ny = player.y + dy;
 
-                if (isWall(nx, ny)) return;
+                if (isWall(nx, ny)) return; // Solid wall
 
                 let item = items.find(i => i.x === nx && i.y === ny);
                 
                 if (item) {
                     if (item.type === "N") {
-                        openUI("Wizard", "Greetings! I sense hidden dangers in the floor...", false);
-                    } else if (item.type === "E" || item.type === "$" || item.type === "H") {
+                        openUI("Wizard", "Some walls ('?') are fake! Walk into them to find loot.", false);
+                    } 
+                    else if (item.type === "K") {
+                        inventory.keys++;
+                        updateHUD();
+                        items = items.filter(i => i !== item); // Remove Key
+                        // Move player onto the tile
+                        player.x = nx; player.y = ny;
+                    }
+                    else if (item.type === "P") {
+                        inventory.vision = true;
+                        updateHUD();
+                        openUI("Potion Drinker", "You can now see hidden traps!", false);
+                        items = items.filter(i => i !== item); // Remove Potion
+                        player.x = nx; player.y = ny;
+                    }
+                    else if (item.type === "D") {
+                        if (inventory.keys > 0) {
+                            inventory.keys--;
+                            updateHUD();
+                            items = items.filter(i => i !== item); // Open Door
+                            openUI("Unlocked!", "You used a key to open the door.", false);
+                        } else {
+                            openUI("Locked", "You need a key 🔑 to open this door.", false);
+                        }
+                    }
+                    else if (item.type === "S") {
+                        // Secret wall - just walk through!
+                        player.x = nx; player.y = ny;
+                    }
+                    else if (item.type === "E" || item.type === "$" || item.type === "H") {
                         currentEnemy = item;
-                        let title = (item.type === "$") ? "BOSS BATTLE" : (item.type === "H" ? "SURPRISE ATTACK!" : "Battle");
-                        openUI(title, item.quest.q, true, item.type === "$");
-                    } else if (item.type === ">") {
+                        let title = (item.type === "$") ? "BOSS BATTLE" : (item.type === "H" ? "SURPRISE!" : "Battle");
+                        openUI(title, item.quest.q, true);
+                    } 
+                    else if (item.type === ">") {
                         loadLevel(levelIdx + 1);
                     }
                 } else {
@@ -393,18 +424,13 @@
             }
         });
 
-        // --- 8. UI LOGIC ---
+        // --- 9. UI LOGIC ---
         const UI = document.getElementById("ui-layer");
         const INPUT = document.getElementById("answer");
 
-        function openUI(title, text, isBattle, isBoss) {
+        function openUI(title, text, isBattle) {
             isPaused = true;
             UI.style.display = "block";
-            
-            // Add Boss Styling
-            if (isBoss) UI.classList.add("boss-mode");
-            else UI.classList.remove("boss-mode");
-
             document.getElementById("ui-title").innerText = title;
             document.getElementById("ui-text").innerText = text;
             document.getElementById("feedback").innerText = "";
@@ -427,12 +453,9 @@
 
         window.checkAnswer = function() {
             if (!currentEnemy) return;
-            
             const attempt = INPUT.value.toLowerCase().trim();
             const correct = currentEnemy.quest.a.toLowerCase().trim();
-
             if (attempt === correct) {
-                // Defeat
                 items = items.filter(i => i !== currentEnemy);
                 closeUI();
             } else {
