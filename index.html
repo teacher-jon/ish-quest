@@ -1,60 +1,67 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Suffixia: HD Edition</title>
+    <title>Suffixia: The Challenge</title>
     <style>
         body { 
             margin: 0; 
-            background: #111; 
-            overflow: hidden; /* No scrollbars */
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #0d0d0d; 
+            overflow: hidden; 
+            font-family: 'Courier New', Courier, monospace; 
             color: white; 
         }
         
         canvas { 
             display: block; 
-            background: #181818; 
+            background: #111; 
         }
         
         /* UI OVERLAY */
         #ui-layer {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(20, 20, 30, 0.95); 
-            color: white; 
-            padding: 30px; 
-            border: 2px solid #4a90e2;
-            border-radius: 15px;
+            background: rgba(15, 15, 20, 0.98); 
+            color: #eee; 
+            padding: 40px; 
+            border: 2px solid #6c5ce7;
+            border-radius: 10px;
             text-align: center; 
             display: none; 
-            width: 400px;
-            box-shadow: 0 0 50px rgba(74, 144, 226, 0.3);
-            backdrop-filter: blur(5px);
+            width: 500px;
+            box-shadow: 0 0 100px rgba(108, 92, 231, 0.4);
+            font-size: 18px;
         }
 
-        h2#ui-title { margin-top: 0; color: #4a90e2; text-transform: uppercase; letter-spacing: 2px; }
-        p#ui-text { font-size: 18px; line-height: 1.5; color: #ddd; }
+        h2#ui-title { margin-top: 0; color: #a29bfe; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #444; padding-bottom: 10px;}
+        p#ui-text { font-size: 20px; line-height: 1.6; margin: 20px 0; }
 
         input { 
-            padding: 12px; font-size: 18px; text-align: center; width: 80%; margin-top: 15px;
-            background: #333; border: 1px solid #555; color: white; border-radius: 5px;
+            padding: 15px; font-size: 20px; text-align: center; width: 80%; margin-top: 15px;
+            background: #2d3436; border: 2px solid #636e72; color: white; border-radius: 5px;
+            outline: none;
         }
+        input:focus { border-color: #a29bfe; }
         
         button { 
-            padding: 12px 24px; font-size: 16px; cursor: pointer; margin-top: 20px;
-            background: #4a90e2; color: white; border: none; border-radius: 5px; font-weight: bold;
-            transition: transform 0.1s, background 0.1s;
+            padding: 12px 30px; font-size: 18px; cursor: pointer; margin-top: 25px;
+            background: #6c5ce7; color: white; border: none; border-radius: 5px; font-weight: bold;
+            transition: all 0.2s;
         }
-        button:hover { background: #357abd; transform: scale(1.05); }
+        button:hover { background: #81ecec; color: black; transform: scale(1.05); }
         
         #loading { 
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            font-size: 24px; font-weight: bold; letter-spacing: 3px;
+            font-size: 24px; font-weight: bold; color: #a29bfe;
         }
+
+        /* BOSS MODE STYLING */
+        .boss-mode { border-color: #d63031 !important; box-shadow: 0 0 100px rgba(214, 48, 49, 0.4) !important; }
+        .boss-mode h2 { color: #ff7675 !important; }
+        .boss-mode button { background: #d63031 !important; }
     </style>
 </head>
 <body>
 
-    <div id="loading">LOADING HIGH-RES ASSETS...</div>
+    <div id="loading">LOADING EXPANDED WORLD...</div>
     <canvas id="gameCanvas"></canvas>
 
     <div id="ui-layer">
@@ -62,30 +69,76 @@
         <p id="ui-text">...</p>
         
         <div id="battle-ui" style="display:none">
-            <input type="text" id="answer" placeholder="Type word ending in -ish" autocomplete="off">
+            <input type="text" id="answer" placeholder="Type answer..." autocomplete="off">
             <br>
-            <button onclick="checkAnswer()">CAST SPELL</button>
+            <button onclick="checkAnswer()">SUBMIT ANSWER</button>
         </div>
         
         <button id="close-btn" onclick="closeUI()" style="display:none">CONTINUE</button>
-        <p id="feedback" style="color:#ff6b6b; font-weight:bold; min-height: 20px; margin-top:15px;"></p>
+        <p id="feedback" style="color:#ff7675; font-weight:bold; min-height: 20px; margin-top:15px;"></p>
     </div>
 
     <script>
-        // --- 1. HD CONFIGURATION ---
-        const TILE_SIZE = 64; // Increased size (was 32/48) to show details
+        // --- 1. CONFIGURATION ---
+        const TILE_SIZE = 64; 
         const CANVAS = document.getElementById("gameCanvas");
         const CTX = CANVAS.getContext("2d");
 
-        // --- 2. RESIZE HANDLER (Full Screen) ---
-        function resize() {
-            CANVAS.width = window.innerWidth;
-            CANVAS.height = window.innerHeight;
-            // Crisp pixel art look (optional, keeps lines sharp)
-            CTX.imageSmoothingEnabled = false; 
-            if(assetsLoaded === totalAssets) draw();
-        }
-        window.addEventListener('resize', resize);
+        // --- 2. HUGE QUESTION BANK ---
+        // We use arrays so we can pick random questions every time
+        
+        const REGULAR_QUESTIONS = [
+            { a: "greenish", q: "Something that is somewhat green." },
+            { a: "boyish", q: "Having the characteristics of a boy." },
+            { a: "girlish", q: "Resembling or characteristic of a girl." },
+            { a: "childish", q: "Silly and immature, like a child." },
+            { a: "ticklish", q: "Sensitive to being tickled." },
+            { a: "feverish", q: "Showing symptoms of a fever." },
+            { a: "stylish", q: "Fashionable and elegant." },
+            { a: "foolish", q: "Lacking good sense or judgment." },
+            { a: "selfish", q: "Caring only about oneself." },
+            { a: "pinkish", q: "A color that is slightly pink." },
+            { a: "sweetish", q: "Tasting somewhat sweet." },
+            { a: "tallish", q: "Somewhat tall, but not giant." },
+            { a: "darkish", q: "Somewhat dark." },
+            { a: "coldish", q: "Slightly cold." },
+            { a: "oldish", q: "Somewhat old." },
+            { a: "youngish", q: "Somewhat young." },
+            { a: "newish", q: "Somewhat new." },
+            { a: "wildish", q: "Somewhat wild or untamed." },
+            { a: "mildish", q: "Somewhat mild." },
+            { a: "dampish", q: "Slightly wet or damp." },
+            { a: "warmish", q: "Slightly warm." },
+            { a: "slowish", q: "Somewhat slow." },
+            { a: "fastish", q: "Somewhat fast." },
+            { a: "flatish", q: "Somewhat flat." },
+            { a: "roundish", q: "Somewhat round." },
+            { a: "shortish", q: "Somewhat short." },
+            { a: "longish", q: "Somewhat long." },
+            { a: "goodish", q: "Fairly good, but not great." },
+            { a: "badish", q: "Somewhat bad." },
+            { a: "hardish", q: "Somewhat hard." },
+            { a: "softish", q: "Somewhat soft." },
+            { a: "sheepish", q: "Showing embarrassment from shame or a lack of self-confidence." },
+            { a: "bookish", q: "Devoted to reading and studying." },
+            { a: "owlishes", q: "Looking solemn or wise like an owl." },
+            { a: "modish", q: "Conforming to a popular fashion." },
+            { a: "sluggish", q: "Slow-moving or inactive." },
+            { a: "peckish", q: "Hungry." },
+            { a: "squeamish", q: "Easily made to feel sick or disgusted." },
+            { a: "clownish", q: "Acting in a funny or foolish way." },
+            { a: "waspish", q: "Readily expressing anger or irritation." }
+            // Add as many as you want here!
+        ];
+
+        // Boss questions require synthesis/analysis
+        const BOSS_QUESTIONS = [
+            { a: "adjective", q: "In the word 'Childish', what part of speech does the suffix '-ish' create?" },
+            { a: "quality of", q: "Does the suffix '-ish' usually mean 'without' or 'quality of'?" },
+            { a: "noun", q: "To make the word 'Foolish', do you attach '-ish' to a Noun or a Verb?" },
+            { a: "somewhat", q: "In the word 'Greenish', does the suffix mean 'very' or 'somewhat'?" },
+            { a: "approximation", q: "When used with numbers (like 'sevenish'), does '-ish' imply precision or approximation?" }
+        ];
 
         // --- 3. ASSETS ---
         const ASSETS = {
@@ -97,7 +150,6 @@
             "E": "images/enemy.png",
             "$": "images/boss.png"
         };
-
         const IMAGES = {};
         let assetsLoaded = 0;
         const totalAssets = Object.keys(ASSETS).length;
@@ -107,54 +159,51 @@
                 const img = new Image();
                 img.src = ASSETS[key];
                 img.onload = () => { assetsLoaded++; checkLoad(); };
-                img.onerror = () => { 
-                    console.error("Missing: " + ASSETS[key]); 
-                    assetsLoaded++; checkLoad(); 
-                };
+                img.onerror = () => { assetsLoaded++; checkLoad(); };
                 IMAGES[key] = img;
             }
         }
-
         function checkLoad() {
             if (assetsLoaded === totalAssets) {
                 document.getElementById("loading").style.display = "none";
-                resize(); // Set initial size
-                requestAnimationFrame(gameLoop); // Start Animation Loop
+                resize();
+                requestAnimationFrame(gameLoop);
             }
         }
 
-        // --- 4. GAME DATA ---
+        // --- 4. GAME ENGINE ---
         let player = { x: 1, y: 1 };
         let levelIdx = 0;
         let isPaused = false;
         let currentEnemy = null;
         let walls = [];
         let items = [];
+        let moveTimer = 0; // For enemy auto-movement
 
-        // LEVELS
+        // EXPANDED LEVELS (More Enemies 'E' and Hidden Spots 'H')
         const LEVELS = [
             [
                 "####################",
-                "#..................#",
-                "#.N................#",
+                "#@.................#",
+                "#.N...H............#", // H = Hidden Enemy
                 "#.......#....E.....#",
                 "#.......#..........#",
-                "#...#.......@......#",
+                "#...#.......E......#",
                 "#...#..............#",
-                "#...#........>.....#",
+                "#...#...E....>.....#",
                 "#...#..............#",
                 "####################"
             ],
             [
                 "####################",
                 "#@..E...#...E......#",
-                "#.......#.......#..#",
+                "#H......#.......#..#",
                 "###.#####...#####..#",
                 "#.......E.......#..#",
-                "#.N.............#..#",
+                "#.N........H....#..#",
                 "#########...#####..#",
-                "#...........#......#",
-                "#...........#...>..#",
+                "#..E........#...E..#",
+                "#......H....#...>..#",
                 "####################"
             ],
             [
@@ -164,27 +213,17 @@
                 "#...#...#...#...#..#",
                 "#...E.......E......#",
                 "#..................#",
-                "#.........$........#",
+                "#....E....$....E...#",
                 "#..................#",
-                "#..................#",
+                "#.........H........#",
                 "####################"
             ]
         ];
 
-        const QUESTS = {
-            "greenish": { clue: "Sickly pale color...", answer: "greenish" },
-            "boyish": { clue: "Grown man, young face...", answer: "boyish" },
-            "ticklish": { clue: "Laughs when feet touched...", answer: "ticklish" },
-            "stylish": { clue: "Wears trendy clothes...", answer: "stylish" },
-            "squeamish": { clue: "Faints at sight of blood...", answer: "squeamish" }
-        };
-
-        // --- 5. ENGINE ---
-        
         function loadLevel(idx) {
             levelIdx = idx;
             if (levelIdx >= LEVELS.length) {
-                alert("YOU HAVE CONQUERED SUFFIXIA!");
+                alert("CONGRATULATIONS! YOU HAVE MASTERED SUFFIXIA!");
                 levelIdx = 0;
             }
 
@@ -195,62 +234,105 @@
             for (let y = 0; y < map.length; y++) {
                 for (let x = 0; x < map[y].length; x++) {
                     let char = map[y][x];
+                    
                     if (char === "#") walls.push({x, y});
                     else if (char === "@") { player.x = x; player.y = y; }
-                    else if (char === "E" || char === "$") {
-                        const keys = Object.keys(QUESTS);
-                        const q = QUESTS[keys[Math.floor(Math.random() * keys.length)]];
-                        items.push({ x, y, type: char, quest: q, id: Math.random() });
+                    else if (char === "E" || char === "$" || char === "H") {
+                        // Pick random question
+                        let pool = (char === "$") ? BOSS_QUESTIONS : REGULAR_QUESTIONS;
+                        let qData = pool[Math.floor(Math.random() * pool.length)];
+                        
+                        // 'H' is hidden, so we mark it, but it looks like floor
+                        let type = char;
+                        if (char === "H") type = "H"; 
+
+                        items.push({ 
+                            x, y, type: type, 
+                            quest: qData, 
+                            id: Math.random(),
+                            isMoving: (char === "E") // Only E moves
+                        });
                     } 
-                    else if (char !== ".") items.push({ x, y, type: char, id: Math.random() });
+                    else if (char === "N" || char === ">") {
+                        items.push({ x, y, type: char, id: Math.random() });
+                    }
                 }
             }
         }
 
-        // --- 6. RENDERER (With Animation) ---
-        
+        // --- 5. GAME LOOP ---
         function gameLoop() {
-            if(!isPaused) draw();
+            if(!isPaused) {
+                updateEnemies();
+                draw();
+            }
             requestAnimationFrame(gameLoop);
         }
 
+        function updateEnemies() {
+            moveTimer++;
+            // Move enemies every 60 frames (approx 1 second)
+            if (moveTimer > 60) {
+                moveTimer = 0;
+                items.forEach(item => {
+                    if (item.isMoving) {
+                        // Random movement
+                        let dirs = [[0,1], [0,-1], [1,0], [-1,0]];
+                        let move = dirs[Math.floor(Math.random() * dirs.length)];
+                        let nx = item.x + move[0];
+                        let ny = item.y + move[1];
+
+                        // Check collisions for enemy
+                        if (!isWall(nx, ny) && !isPlayer(nx, ny) && !isItem(nx, ny)) {
+                            item.x = nx;
+                            item.y = ny;
+                        }
+                    }
+                });
+            }
+        }
+
+        function isWall(x, y) { return walls.some(w => w.x === x && w.y === y); }
+        function isPlayer(x, y) { return player.x === x && player.y === y; }
+        function isItem(x, y) { return items.some(i => i.x === x && i.y === y); }
+
+        // --- 6. DRAWING ---
         function draw() {
-            // Clear
-            CTX.fillStyle = "#151515";
+            CANVAS.width = window.innerWidth;
+            CANVAS.height = window.innerHeight;
+            CTX.imageSmoothingEnabled = false;
+
+            CTX.fillStyle = "#0d0d0d";
             CTX.fillRect(0, 0, CANVAS.width, CANVAS.height);
 
-            // Calculate Center Camera
             let offsetX = (CANVAS.width / 2) - (player.x * TILE_SIZE) - (TILE_SIZE / 2);
             let offsetY = (CANVAS.height / 2) - (player.y * TILE_SIZE) - (TILE_SIZE / 2);
 
             CTX.save();
             CTX.translate(offsetX, offsetY);
 
-            // Breathing Animation Offset (Bobbing up and down)
-            const bob = Math.sin(Date.now() / 200) * 3; 
-
-            // 1. Draw Map & Walls
+            // Draw Map
             const map = LEVELS[levelIdx];
             for (let y = 0; y < map.length; y++) {
                 for (let x = 0; x < map[y].length; x++) {
                     let char = map[y][x];
-                    
-                    // Floor (No bobbing)
-                    drawTile(x, y, ".", 0); 
-                    
-                    if (char === "#") {
-                        drawTile(x, y, "#", 0); // Walls don't bob
-                    }
+                    drawTile(x, y, ".", 0); // Floor base
+                    if (char === "#") drawTile(x, y, "#", 0);
                 }
             }
 
-            // 2. Draw Items (Enemies/NPCs Bob)
+            // Draw Items
+            const bob = Math.sin(Date.now() / 200) * 3;
             items.forEach(item => {
-                let yOffset = (item.type === "E" || item.type === "N" || item.type === "$") ? bob : 0;
-                drawTile(item.x, item.y, item.type, yOffset);
+                if (item.type === "H") {
+                    // Hidden enemies look like floor! Do not draw anything special.
+                } else {
+                    let yOffset = (item.type === "E" || item.type === "N" || item.type === "$") ? bob : 0;
+                    drawTile(item.x, item.y, item.type, yOffset);
+                }
             });
 
-            // 3. Draw Player (Bobs)
+            // Draw Player
             drawTile(player.x, player.y, "@", bob);
 
             CTX.restore();
@@ -259,26 +341,25 @@
         function drawTile(x, y, type, yOffset) {
             const img = IMAGES[type];
             const px = x * TILE_SIZE;
-            const py = (y * TILE_SIZE) + yOffset; // Apply animation
+            const py = (y * TILE_SIZE) + yOffset;
 
             if (img && img.complete && img.naturalHeight !== 0) {
-                // Draw Image scaled to TILE_SIZE
                 CTX.drawImage(img, px, py, TILE_SIZE, TILE_SIZE);
             } else {
-                // Fallback Colors
-                if (type === "#") CTX.fillStyle = "#555";
+                // Fallbacks
+                if (type === "#") CTX.fillStyle = "#444";
                 else if (type === ".") CTX.fillStyle = "#222";
-                else if (type === "@") CTX.fillStyle = "#4a90e2";
-                else if (type === "E") CTX.fillStyle = "#e74c3c";
-                else if (type === ">") CTX.fillStyle = "#f1c40f";
-                else CTX.fillStyle = "#2ecc71";
+                else if (type === "@") CTX.fillStyle = "#6c5ce7";
+                else if (type === "E") CTX.fillStyle = "#d63031";
+                else if (type === "$") CTX.fillStyle = "#a29bfe";
+                else if (type === ">") CTX.fillStyle = "#ffeaa7";
+                else CTX.fillStyle = "#55efc4";
                 
                 CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE);
             }
         }
 
-        // --- 7. CONTROLS ---
-
+        // --- 7. PLAYER MOVEMENT ---
         window.addEventListener("keydown", (e) => {
             if (isPaused) return;
             let dx = 0, dy = 0;
@@ -286,40 +367,44 @@
             if (e.key === "ArrowRight") dx = 1;
             if (e.key === "ArrowUp") dy = -1;
             if (e.key === "ArrowDown") dy = 1;
-            if (dx !== 0 || dy !== 0) move(dx, dy);
+
+            if (dx !== 0 || dy !== 0) {
+                let nx = player.x + dx;
+                let ny = player.y + dy;
+
+                if (isWall(nx, ny)) return;
+
+                let item = items.find(i => i.x === nx && i.y === ny);
+                
+                if (item) {
+                    if (item.type === "N") {
+                        openUI("Wizard", "Greetings! I sense hidden dangers in the floor...", false);
+                    } else if (item.type === "E" || item.type === "$" || item.type === "H") {
+                        currentEnemy = item;
+                        let title = (item.type === "$") ? "BOSS BATTLE" : (item.type === "H" ? "SURPRISE ATTACK!" : "Battle");
+                        openUI(title, item.quest.q, true, item.type === "$");
+                    } else if (item.type === ">") {
+                        loadLevel(levelIdx + 1);
+                    }
+                } else {
+                    player.x = nx;
+                    player.y = ny;
+                }
+            }
         });
 
-        function move(dx, dy) {
-            let nextX = player.x + dx;
-            let nextY = player.y + dy;
-
-            if (walls.some(w => w.x === nextX && w.y === nextY)) return;
-
-            let item = items.find(i => i.x === nextX && i.y === nextY);
-            if (item) {
-                if (item.type === "N") {
-                    openUI("Wizard", "Greetings! Add '-ish' to words to reveal their nature.", false);
-                } else if (item.type === "E" || item.type === "$") {
-                    currentEnemy = item;
-                    openUI("Battle Mode", item.quest.clue, true);
-                } else if (item.type === ">") {
-                    loadLevel(levelIdx + 1);
-                }
-                return; 
-            }
-
-            player.x = nextX;
-            player.y = nextY;
-        }
-
         // --- 8. UI LOGIC ---
-
         const UI = document.getElementById("ui-layer");
         const INPUT = document.getElementById("answer");
 
-        function openUI(title, text, isBattle) {
+        function openUI(title, text, isBattle, isBoss) {
             isPaused = true;
             UI.style.display = "block";
+            
+            // Add Boss Styling
+            if (isBoss) UI.classList.add("boss-mode");
+            else UI.classList.remove("boss-mode");
+
             document.getElementById("ui-title").innerText = title;
             document.getElementById("ui-text").innerText = text;
             document.getElementById("feedback").innerText = "";
@@ -342,17 +427,29 @@
 
         window.checkAnswer = function() {
             if (!currentEnemy) return;
-            if (INPUT.value.toLowerCase().trim() === currentEnemy.quest.answer) {
+            
+            const attempt = INPUT.value.toLowerCase().trim();
+            const correct = currentEnemy.quest.a.toLowerCase().trim();
+
+            if (attempt === correct) {
+                // Defeat
                 items = items.filter(i => i !== currentEnemy);
                 closeUI();
             } else {
                 document.getElementById("feedback").innerText = "WRONG! Try again.";
             }
         }
-        
+
         INPUT.addEventListener("keypress", (e) => {
             if (e.key === "Enter") checkAnswer();
         });
+        
+        function resize() {
+            CANVAS.width = window.innerWidth;
+            CANVAS.height = window.innerHeight;
+            if(assetsLoaded === totalAssets) draw();
+        }
+        window.addEventListener('resize', resize);
         window.closeUI = closeUI;
 
         // START
