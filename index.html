@@ -7,7 +7,7 @@
         body { 
             margin: 0; 
             overflow: hidden; 
-            background-color: #111; 
+            background-color: #000; 
             font-family: 'Verdana', sans-serif; 
             user-select: none;
         }
@@ -28,7 +28,6 @@
             z-index: 100;
         }
         
-        /* Header styling */
         h2#ui-header { 
             margin: 0 0 15px 0; 
             color: #2c3e50; 
@@ -40,51 +39,47 @@
 
         p#ui-text { font-size: 18px; color: #555; line-height: 1.6; margin-bottom: 20px; }
         
-        /* Input & Button Styling */
         input { 
-            padding: 12px; 
-            font-size: 18px; 
-            width: 70%; 
-            border: 2px solid #ccc; 
-            border-radius: 6px; 
-            outline: none;
-            text-align: center;
+            padding: 12px; font-size: 18px; width: 70%; 
+            border: 2px solid #ccc; border-radius: 6px; outline: none; text-align: center;
         }
         input:focus { border-color: #3498db; }
 
         button { 
-            padding: 12px 24px; 
-            font-size: 16px; 
-            margin-top: 15px; 
-            background: #2980b9; 
-            color: white; 
-            border: none; 
-            cursor: pointer; 
-            border-radius: 6px; 
-            transition: background 0.2s;
-            font-weight: bold;
+            padding: 12px 24px; font-size: 16px; margin-top: 15px; 
+            background: #2980b9; color: white; border: none; 
+            cursor: pointer; border-radius: 6px; font-weight: bold;
         }
         button:hover { background: #3498db; }
         
         /* HUD */
         .hud { 
-            position: absolute; 
-            top: 20px; left: 20px; 
-            color: white; 
-            font-size: 24px; 
-            font-weight: bold; 
-            text-shadow: 3px 3px 0 #000; 
-            pointer-events: none;
+            position: absolute; top: 20px; left: 20px; 
+            color: white; font-size: 24px; font-weight: bold; 
+            text-shadow: 3px 3px 0 #000; pointer-events: none;
             font-family: 'Courier New', monospace;
         }
 
         #feedback { font-weight: bold; min-height: 24px; margin-top: 15px; }
+
+        /* CLICK TO START OVERLAY */
+        #start-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex; justify-content: center; align-items: center;
+            color: white; font-size: 30px; font-family: monospace;
+            z-index: 200; cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
+    <div id="start-overlay" onclick="startGame()">
+        <div>CLICK HERE TO START</div>
+    </div>
+
     <div class="hud">
-        <span id="level-display"></span>
+        <span id="level-display">Level 1</span>
     </div>
 
     <div id="ui-layer">
@@ -109,13 +104,15 @@
     <script>
     // 1. INITIALIZE ENGINE
     kaboom({
-        background: [15, 15, 20], // Deep dark blue/black background
-        scale: 2, 
+        background: [15, 15, 20], 
+        scale: 2, // Zoom level
         canvas: document.querySelector("canvas"), 
-        crisp: true, // Pixel art look
+        crisp: true,
+        debug: true, // Allow F1 key to show hitboxes (Good for debugging)
     });
 
-    // 2. LOAD ASSETS (Updated for "images" folder)
+    // 2. LOAD ASSETS
+    // IMPORTANT: Even if your images are 1000px big, we will shrink them later.
     loadSprite("hero", "images/hero.png");
     loadSprite("wall", "images/wall.png");
     loadSprite("floor", "images/floor.png");
@@ -183,74 +180,88 @@
 
     // --- SCENES ---
 
-    // A. Start Screen
-    scene("start", () => {
-        add([
-            text("The Legend of Suffixia", { size: 24 }),
-            pos(width()/2, height()/2 - 50),
-            anchor("center"),
-            color(255, 255, 0)
-        ]);
-
-        add([
-            text("Press ENTER to Begin", { size: 16 }),
-            pos(width()/2, height()/2 + 20),
-            anchor("center"),
-            // Blink effect
-            opacity(1),
-            { update() { this.opacity = Math.sin(time() * 5) * 0.5 + 0.5 } }
-        ]);
-
-        onKeyPress("enter", () => go("game", { levelIdx: 0 }));
-    });
-
-    // B. Main Game
     scene("game", ({ levelIdx }) => {
         
         const levelDisplay = document.getElementById("level-display");
         if(levelDisplay) levelDisplay.innerText = "Level " + (levelIdx + 1);
 
+        // --- GRID CONFIGURATION (THE FIX) ---
+        // We set tileWidth to 16.
+        // We force every sprite to { width: 16, height: 16 } so they fit perfectly.
+        const T_SIZE = 16;
+
         const LEVEL_CONFIG = {
-            tileWidth: 16,
-            tileHeight: 16,
+            tileWidth: T_SIZE,
+            tileHeight: T_SIZE,
             tiles: {
-                "#": () => [ sprite("wall"), area(), body({ isStatic: true }), "wall" ], 
-                ".": () => [ sprite("floor") ],
-                ">": () => [ sprite("stairs"), area(), body({ isStatic: true }), "stairs" ],
-                "@": () => [ sprite("hero"), area(), body(), anchor("center"), "player" ],
-                "N": () => [ sprite("npc"), area(), body({ isStatic: true }), anchor("center"), "npc" ],
+                // WALL: Static body, force size 16x16
+                "#": () => [ 
+                    sprite("wall", { width: T_SIZE, height: T_SIZE }), 
+                    area(), 
+                    body({ isStatic: true }), 
+                    "wall" 
+                ], 
                 
-                // Enemies (Using a generic enemy tag + specific ID)
-                "1": () => [ sprite("enemy"), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "1" } ],
-                "2": () => [ sprite("enemy"), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "2" } ],
-                "3": () => [ sprite("enemy"), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "3" } ],
-                "4": () => [ sprite("enemy"), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "4" } ],
-                "5": () => [ sprite("enemy"), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "5" } ],
-                "6": () => [ sprite("enemy"), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "6" } ],
-                "$": () => [ sprite("boss"), area(), body({ isStatic: true }), anchor("center"), "boss", { id: "$" } ]
+                // FLOOR: Just visual, force size 16x16
+                ".": () => [ 
+                    sprite("floor", { width: T_SIZE, height: T_SIZE }) 
+                ],
+                
+                // STAIRS: Static trigger, force size 16x16
+                ">": () => [ 
+                    sprite("stairs", { width: T_SIZE, height: T_SIZE }), 
+                    area(), 
+                    body({ isStatic: true }), 
+                    "stairs" 
+                ],
+                
+                // HERO: Dynamic body, slightly smaller hitbox (scale 0.8) to prevent sticking
+                "@": () => [ 
+                    sprite("hero", { width: T_SIZE, height: T_SIZE }), 
+                    area({ scale: 0.8 }), 
+                    body(), 
+                    anchor("center"), 
+                    "player" 
+                ],
+                
+                // NPC
+                "N": () => [ 
+                    sprite("npc", { width: T_SIZE, height: T_SIZE }), 
+                    area(), 
+                    body({ isStatic: true }), 
+                    anchor("center"), 
+                    "npc" 
+                ],
+                
+                // ENEMIES
+                "1": () => [ sprite("enemy", { width: T_SIZE, height: T_SIZE }), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "1" } ],
+                "2": () => [ sprite("enemy", { width: T_SIZE, height: T_SIZE }), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "2" } ],
+                "3": () => [ sprite("enemy", { width: T_SIZE, height: T_SIZE }), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "3" } ],
+                "4": () => [ sprite("enemy", { width: T_SIZE, height: T_SIZE }), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "4" } ],
+                "5": () => [ sprite("enemy", { width: T_SIZE, height: T_SIZE }), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "5" } ],
+                "6": () => [ sprite("enemy", { width: T_SIZE, height: T_SIZE }), area(), body({ isStatic: true }), anchor("center"), "enemy", { id: "6" } ],
+                
+                // BOSS: Bigger (32x32)
+                "$": () => [ sprite("boss", { width: 32, height: 32 }), area(), body({ isStatic: true }), anchor("center"), "boss", { id: "$" } ]
             }
         };
 
         // Draw the map
-        const map = addLevel(LEVELS[levelIdx], LEVEL_CONFIG);
+        addLevel(LEVELS[levelIdx], LEVEL_CONFIG);
 
         // Safe player find
         const player = get("player")[0];
-        if (!player) {
-            console.error("Player not found in map data.");
-            return;
-        }
+        if (!player) return;
 
         // MOVEMENT
-        const SPEED = 140; // Slightly faster for better feel
+        const SPEED = 140; 
         onKeyDown("left", () => { player.move(-SPEED, 0); player.flipX = true; }); 
         onKeyDown("right", () => { player.move(SPEED, 0); player.flipX = false; });
         onKeyDown("up", () => player.move(0, -SPEED));
         onKeyDown("down", () => player.move(0, SPEED));
 
-        // SMOOTH CAMERA (The Upgrade)
+        // SMOOTH CAMERA
         player.onUpdate(() => {
-            // Lerp makes the camera "slide" to the player position
             camPos(lerp(camPos(), player.pos, dt() * 5));
         });
 
@@ -283,7 +294,7 @@
     }
 
     function openModal(header, text, isBattle) {
-        debug.paused = true; // Pause game world
+        debug.paused = true; 
         
         const ui = document.getElementById("ui-layer");
         const battleControls = document.getElementById("battle-controls");
@@ -322,32 +333,31 @@
         const data = QUESTS[currentEnemy.id];
 
         if (input.value.toLowerCase().trim() === data.word) {
-            // CORRECT ANSWER
-            const pos = currentEnemy.pos; // Save position for explosion
+            const pos = currentEnemy.pos; 
             currentEnemy.destroy(); 
             closeModal();
-            
-            // JUICE: Camera shake and Explosion
             shake(4); 
-            addKaboom(pos); // Kaboom built-in explosion effect
-
+            addKaboom(pos); 
         } else {
-            // WRONG ANSWER
             feedback.innerText = "WRONG! Try again.";
             feedback.style.color = "red";
-            shake(10); // Violent shake
+            shake(10); 
             input.value = "";
             input.focus();
         }
     }
     
-    // Press Enter to submit answer
     document.getElementById("answer-input").addEventListener("keypress", function(event) {
         if (event.key === "Enter") { window.checkAnswer(); }
     });
 
-    // Start at the Title Screen
-    go("start");
+    // --- CLICK TO START HANDLER ---
+    // This ensures audio context and input focus are ready
+    window.startGame = function() {
+        document.getElementById("start-overlay").style.display = "none";
+        // Start the game loop
+        go("game", { levelIdx: 0 });
+    }
 
     </script>
 </body>
