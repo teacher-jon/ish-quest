@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>The Legend of Suffixia: DX Edition</title>
+    <title>The Legend of Suffixia</title>
     <meta charset="utf-8">
     <style>
         body { 
@@ -29,12 +29,9 @@
         }
         
         h2#ui-header { 
-            margin: 0 0 15px 0; 
-            color: #2c3e50; 
-            text-transform: uppercase; 
-            letter-spacing: 1px;
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 10px;
+            margin: 0 0 15px 0; color: #2c3e50; 
+            text-transform: uppercase; letter-spacing: 1px;
+            border-bottom: 2px solid #ddd; padding-bottom: 10px;
         }
 
         p#ui-text { font-size: 18px; color: #555; line-height: 1.6; margin-bottom: 20px; }
@@ -43,8 +40,7 @@
             padding: 12px; font-size: 18px; width: 70%; 
             border: 2px solid #ccc; border-radius: 6px; outline: none; text-align: center;
         }
-        input:focus { border-color: #3498db; }
-
+        
         button { 
             padding: 12px 24px; font-size: 16px; margin-top: 15px; 
             background: #2980b9; color: white; border: none; 
@@ -52,7 +48,6 @@
         }
         button:hover { background: #3498db; }
         
-        /* HUD */
         .hud { 
             position: absolute; top: 20px; left: 20px; 
             color: white; font-size: 24px; font-weight: bold; 
@@ -65,23 +60,19 @@
         /* CLICK TO START OVERLAY */
         #start-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            display: flex; justify-content: center; align-items: center;
-            color: white; font-size: 30px; font-family: monospace;
-            z-index: 200; cursor: pointer;
+            background: rgba(0,0,0,0.85);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: white; font-family: monospace; z-index: 200; cursor: pointer;
         }
-        
-        /* Canvas Styling to ensure it centers */
-        canvas {
-            display: block;
-            margin: 0 auto;
-        }
+        #start-text { font-size: 30px; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
 
-    <div id="start-overlay" onclick="startGame()">
-        <div>CLICK HERE TO START</div>
+    <div id="start-overlay">
+        <div id="start-text">CLICK TO START</div>
+        <div style="font-size: 14px; margin-top: 20px; color: #aaa;">(Make sure sound is on)</div>
     </div>
 
     <div class="hud">
@@ -95,11 +86,11 @@
         <div id="battle-controls" style="display:none;">
             <input type="text" id="answer-input" placeholder="Type word ending in -ish" autocomplete="off">
             <br>
-            <button onclick="checkAnswer()">CAST SPELL</button>
+            <button id="attack-btn">CAST SPELL</button>
         </div>
 
         <div id="npc-controls" style="display:none;">
-            <button onclick="closeModal()">Close</button>
+            <button id="close-btn">Close</button>
         </div>
 
         <p id="feedback"></p>
@@ -110,17 +101,15 @@
     <script>
     // 1. INITIALIZE ENGINE
     kaboom({
-        background: [15, 15, 20], 
-        scale: 3, 
-        // FIX 1: Removed the 'canvas' line. 
-        // Kaboom will generate its own canvas automatically, preventing the null error.
-        crisp: true,
+        background: [20, 20, 30], 
+        scale: 2, 
+        canvas: document.querySelector("canvas"),
+        // This helps prevent crash loops if assets fail
+        burp: true, 
     });
 
-    // 2. ASSETS
-    // FIX 2: I commented these out so the game works without local files.
-    // If you have the images, uncomment these and remove the color() lines in the level config.
-    /*
+    // 2. LOAD ASSETS
+    // We use a "try/catch" approach internally by Kaboom to prevent total crashes
     loadSprite("hero", "images/hero.png");
     loadSprite("wall", "images/wall.png");
     loadSprite("floor", "images/floor.png");
@@ -128,10 +117,8 @@
     loadSprite("boss", "images/boss.png");
     loadSprite("npc", "images/npc.png");        
     loadSprite("stairs", "images/stairs.png"); 
-    */
 
     // --- GAME DATA ---
-
     const LEVELS = [
         [
             "#####################",
@@ -156,18 +143,6 @@
             "#...........#.......#",
             "#...@.......#...4...#",
             "#####################",
-        ],
-        [
-            "#####################",
-            "#...................#",
-            "#...#...#...#...#...#",
-            "#...#...#...#...#...#",
-            "#...5.......6.......#",
-            "#...................#",
-            "#.........$.........#", 
-            "#...................#",
-            "#.........@.........#",
-            "#####################",
         ]
     ];
 
@@ -183,102 +158,66 @@
 
     const NPC_DIALOGS = {
         0: "Welcome Hero! To defeat monsters, you must combine the base word with the suffix '-ish'.",
-        1: "The forest is dark. Watch your step! Monsters here will test your spelling.",
-        2: "This is the final chamber. The boss is very squeamish... oops, I gave you a hint!" 
+        1: "The forest is dark. Watch your step! Monsters here will test your spelling."
     };
 
-    // --- SCENES ---
-
+    // --- MAIN GAME SCENE ---
     scene("game", ({ levelIdx }) => {
         
         const levelDisplay = document.getElementById("level-display");
         if(levelDisplay) levelDisplay.innerText = "Level " + (levelIdx + 1);
 
-        // --- GRID CONFIGURATION ---
+        // --- THE "SLIM FIT" FIX ---
+        // We force the sprites into 16x16 squares.
+        // We shrink the area to 0.6 so black backgrounds don't get stuck in walls.
         const T_SIZE = 16;
-
+        
         const LEVEL_CONFIG = {
             tileWidth: T_SIZE,
             tileHeight: T_SIZE,
             tiles: {
-                // WALL (Gray Block)
-                "#": () => [ 
-                    rect(T_SIZE, T_SIZE), color(100, 100, 100), outline(1), // Fallback visual
-                    area(), 
-                    body({ isStatic: true }), 
-                    "wall" 
-                ], 
+                "#": () => [ sprite("wall", {width:T_SIZE, height:T_SIZE}), area(), body({isStatic:true}), "wall" ], 
+                ".": () => [ sprite("floor", {width:T_SIZE, height:T_SIZE}) ],
+                ">": () => [ sprite("stairs", {width:T_SIZE, height:T_SIZE}), area(), body({isStatic:true}), "stairs" ],
                 
-                // FLOOR (Dark Gray)
-                ".": () => [ 
-                    rect(T_SIZE, T_SIZE), color(20, 20, 20),
-                ],
-                
-                // STAIRS (Yellow)
-                ">": () => [ 
-                    rect(T_SIZE, T_SIZE), color(255, 255, 0),
-                    area(), 
-                    body({ isStatic: true }), 
-                    "stairs" 
-                ],
-                
-                // HERO (Blue)
+                // HERO FIX: Scale area to 0.6
                 "@": () => [ 
-                    rect(T_SIZE, T_SIZE), color(0, 100, 255),
-                    area({ scale: 0.8 }), 
+                    sprite("hero", {width:T_SIZE, height:T_SIZE}), 
+                    area({ scale: 0.6 }), 
                     body(), 
                     anchor("center"), 
                     "player" 
                 ],
                 
-                // NPC (Green)
-                "N": () => [ 
-                    rect(T_SIZE, T_SIZE), color(0, 255, 0),
-                    area({ scale: 0.8 }), 
-                    body({ isStatic: true }), 
-                    anchor("center"), 
-                    "npc" 
-                ],
+                "N": () => [ sprite("npc", {width:T_SIZE, height:T_SIZE}), area({scale:0.8}), body({isStatic:true}), anchor("center"), "npc" ],
                 
-                // ENEMIES (Red)
-                "1": () => [ rect(T_SIZE, T_SIZE), color(255, 0, 0), area({ scale: 0.7 }), body({ isStatic: true }), anchor("center"), "enemy", { id: "1" } ],
-                "2": () => [ rect(T_SIZE, T_SIZE), color(255, 0, 0), area({ scale: 0.7 }), body({ isStatic: true }), anchor("center"), "enemy", { id: "2" } ],
-                "3": () => [ rect(T_SIZE, T_SIZE), color(255, 0, 0), area({ scale: 0.7 }), body({ isStatic: true }), anchor("center"), "enemy", { id: "3" } ],
-                "4": () => [ rect(T_SIZE, T_SIZE), color(255, 0, 0), area({ scale: 0.7 }), body({ isStatic: true }), anchor("center"), "enemy", { id: "4" } ],
-                "5": () => [ rect(T_SIZE, T_SIZE), color(255, 0, 0), area({ scale: 0.7 }), body({ isStatic: true }), anchor("center"), "enemy", { id: "5" } ],
-                "6": () => [ rect(T_SIZE, T_SIZE), color(255, 0, 0), area({ scale: 0.7 }), body({ isStatic: true }), anchor("center"), "enemy", { id: "6" } ],
-                
-                // BOSS (Purple) 
-                "$": () => [ rect(32, 32), color(200, 0, 200), area({ scale: 0.7 }), body({ isStatic: true }), anchor("center"), "boss", { id: "$" } ]
+                // ENEMY FIX: Scale area to 0.7
+                "1": () => [ sprite("enemy", {width:T_SIZE, height:T_SIZE}), area({scale:0.7}), body({isStatic:true}), anchor("center"), "enemy", { id: "1" } ],
+                "2": () => [ sprite("enemy", {width:T_SIZE, height:T_SIZE}), area({scale:0.7}), body({isStatic:true}), anchor("center"), "enemy", { id: "2" } ],
+                "3": () => [ sprite("enemy", {width:T_SIZE, height:T_SIZE}), area({scale:0.7}), body({isStatic:true}), anchor("center"), "enemy", { id: "3" } ],
+                "4": () => [ sprite("enemy", {width:T_SIZE, height:T_SIZE}), area({scale:0.7}), body({isStatic:true}), anchor("center"), "enemy", { id: "4" } ],
+                "$": () => [ sprite("boss", {width:32, height:32}), area({scale:0.7}), body({isStatic:true}), anchor("center"), "boss", { id: "$" } ]
             }
         };
 
-        // Draw the map
-        addLevel(LEVELS[levelIdx], LEVEL_CONFIG);
+        addLevel(LEVELS[levelIdx] || LEVELS[0], LEVEL_CONFIG);
 
-        // Safe player find
         const player = get("player")[0];
-        if (!player) return;
+        if (!player) return; // Prevent crash if player missing
 
         // MOVEMENT
         const SPEED = 140; 
-        onKeyDown("left", () => { player.move(-SPEED, 0); }); 
-        onKeyDown("right", () => { player.move(SPEED, 0); });
+        onKeyDown("left", () => { player.move(-SPEED, 0); player.flipX = true; }); 
+        onKeyDown("right", () => { player.move(SPEED, 0); player.flipX = false; });
         onKeyDown("up", () => player.move(0, -SPEED));
         onKeyDown("down", () => player.move(0, SPEED));
 
-        // SMOOTH CAMERA
-        player.onUpdate(() => {
-            camPos(lerp(camPos(), player.pos, dt() * 5));
-        });
+        player.onUpdate(() => { camPos(lerp(camPos(), player.pos, dt() * 5)); });
 
         // COLLISIONS
         player.onCollide("stairs", () => {
-            if (levelIdx < LEVELS.length - 1) {
-                go("game", { levelIdx: levelIdx + 1 });
-            } else {
-                openModal("VICTORY!", "You have conquered all the lands of Suffixia!", false);
-            }
+            if (levelIdx < LEVELS.length - 1) go("game", { levelIdx: levelIdx + 1 });
+            else openModal("VICTORY!", "You have conquered all the lands!", false);
         });
 
         player.onCollide("npc", () => {
@@ -290,51 +229,44 @@
         player.onCollide("boss", (b) => startBattle(b));
     });
 
-    // --- UI & BATTLE LOGIC ---
-
+    // --- BATTLE SYSTEM ---
     let currentEnemy = null;
 
     function startBattle(enemy) {
         currentEnemy = enemy;
         const data = QUESTS[enemy.id];
-        openModal(data.title, data.clue, true); 
+        if(data) openModal(data.title, data.clue, true); 
     }
 
     function openModal(header, text, isBattle) {
         debug.paused = true; 
-        
         const ui = document.getElementById("ui-layer");
         const battleControls = document.getElementById("battle-controls");
         const npcControls = document.getElementById("npc-controls");
-        const feedback = document.getElementById("feedback");
         
         document.getElementById("ui-header").innerText = header;
         document.getElementById("ui-text").innerText = text;
-        feedback.innerText = "";
-        feedback.style.color = "black";
+        document.getElementById("feedback").innerText = "";
 
         ui.style.display = "block";
 
         if (isBattle) {
             battleControls.style.display = "block";
             npcControls.style.display = "none";
-            const input = document.getElementById("answer-input");
-            input.value = "";
-            setTimeout(() => input.focus(), 100); 
+            setTimeout(() => document.getElementById("answer-input").focus(), 100); 
         } else {
             battleControls.style.display = "none";
             npcControls.style.display = "block";
         }
     }
 
-    window.closeModal = function() {
+    // Function to safely close the modal
+    function closeModal() {
         document.getElementById("ui-layer").style.display = "none";
-        debug.paused = false;
-        // Focus back on canvas so keys work immediately
-        document.querySelector("canvas").focus();
+        debug.paused = false; 
     }
 
-    window.checkAnswer = function() {
+    function checkAnswer() {
         const input = document.getElementById("answer-input");
         const feedback = document.getElementById("feedback");
         
@@ -345,7 +277,7 @@
             const pos = currentEnemy.pos; 
             currentEnemy.destroy(); 
             closeModal();
-            shake(4); 
+            shake(5); 
             addKaboom(pos); 
         } else {
             feedback.innerText = "WRONG! Try again.";
@@ -355,15 +287,22 @@
             input.focus();
         }
     }
-    
-    document.getElementById("answer-input").addEventListener("keypress", function(event) {
-        if (event.key === "Enter") { window.checkAnswer(); }
+
+    // --- EVENT LISTENERS (The "No ReferenceError" Fix) ---
+    // We attach these via JS to ensure they exist before use
+    document.getElementById("start-overlay").addEventListener("click", () => {
+        document.getElementById("start-overlay").style.display = "none";
+        // Start audio context usually requires user interaction
+        burp(); 
+        go("game", { levelIdx: 0 });
     });
 
-    window.startGame = function() {
-        document.getElementById("start-overlay").style.display = "none";
-        go("game", { levelIdx: 0 });
-    }
+    document.getElementById("attack-btn").addEventListener("click", checkAnswer);
+    document.getElementById("close-btn").addEventListener("click", closeModal);
+    
+    document.getElementById("answer-input").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") { checkAnswer(); }
+    });
 
     </script>
 </body>
