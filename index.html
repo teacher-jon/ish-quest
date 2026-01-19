@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Suffixia: Safe Mode</title>
+    <title>Suffixia: Story Edition</title>
     <style>
         body { 
             margin: 0; 
@@ -21,79 +21,76 @@
         /* HUD */
         #hud {
             position: absolute; top: 10px; left: 10px;
-            background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 8px;
+            background: rgba(0,0,0,0.85); padding: 12px 25px; border-radius: 12px;
             border: 2px solid #555; pointer-events: none;
-            display: flex; gap: 20px; font-size: 20px; font-weight: bold;
-            z-index: 10;
+            display: flex; gap: 25px; font-size: 18px; font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 10;
         }
-        .hud-item { display: flex; align-items: center; gap: 8px; }
+        .hud-item { display: flex; align-items: center; gap: 10px; }
+        .hud-value { color: #a29bfe; }
+        #rank-display { color: #ffeaa7; text-transform: uppercase; font-size: 14px; letter-spacing: 1px; }
 
         /* START SCREEN */
         #start-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(10, 10, 15, 0.95); z-index: 200;
+            background: rgba(10, 10, 15, 0.98); z-index: 200;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         #start-btn {
-            padding: 20px 40px; font-size: 24px; font-weight: bold; 
-            background: #6c5ce7; color: white; border: none; border-radius: 10px;
-            cursor: pointer; box-shadow: 0 0 20px #6c5ce7;
-            margin-bottom: 20px;
+            padding: 20px 50px; font-size: 24px; font-weight: bold; 
+            background: #6c5ce7; color: white; border: none; border-radius: 50px;
+            cursor: pointer; box-shadow: 0 0 30px rgba(108, 92, 231, 0.6);
+            margin-bottom: 20px; transition: transform 0.2s;
         }
-        #start-btn:hover { background: #81ecec; color: black; }
+        #start-btn:hover { transform: scale(1.05); background: #81ecec; color: #2d3436; }
 
-        /* QUEST POPUP */
+        /* UI POPUP */
         #ui-layer {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(20, 20, 30, 0.98); 
+            background: rgba(25, 25, 35, 0.98); 
             color: #eee; 
             padding: 40px; 
-            border: 3px solid #6c5ce7;
-            border-radius: 15px;
+            border: 4px solid #6c5ce7;
+            border-radius: 20px;
             text-align: center; 
             display: none; 
-            width: 550px;
-            box-shadow: 0 0 80px rgba(108, 92, 231, 0.5);
+            width: 600px;
+            box-shadow: 0 0 100px rgba(108, 92, 231, 0.6);
             z-index: 100;
         }
 
-        h2#ui-title { margin-top: 0; color: #a29bfe; text-transform: uppercase; letter-spacing: 2px; border-bottom: 2px solid #444; padding-bottom: 15px;}
-        p#ui-text { font-size: 20px; line-height: 1.6; margin: 20px 0; }
+        h2#ui-title { margin-top: 0; color: #a29bfe; text-transform: uppercase; letter-spacing: 3px; border-bottom: 2px solid #444; padding-bottom: 15px; font-size: 28px;}
+        p#ui-text { font-size: 20px; line-height: 1.6; margin: 25px 0; min-height: 60px; }
 
         input { 
-            padding: 15px; font-size: 22px; text-align: center; width: 80%; margin-top: 15px;
-            background: #2d3436; border: 2px solid #636e72; color: white; border-radius: 8px; outline: none;
+            padding: 15px; font-size: 22px; text-align: center; width: 70%; margin-top: 15px;
+            background: #2d3436; border: 2px solid #636e72; color: white; border-radius: 10px; outline: none;
         }
-        input:focus { border-color: #a29bfe; }
+        input:focus { border-color: #a29bfe; box-shadow: 0 0 10px #a29bfe; }
         
-        button { 
+        button.action-btn { 
             padding: 12px 30px; font-size: 18px; cursor: pointer; margin-top: 25px;
             background: #6c5ce7; color: white; border: none; border-radius: 8px; font-weight: bold;
             transition: all 0.2s;
         }
-        button:hover { background: #81ecec; color: black; transform: scale(1.05); }
-
-        /* DEBUG CONSOLE (Hidden unless error) */
-        #error-log {
-            display: none; position: absolute; bottom: 0; left: 0; width: 100%;
-            background: red; color: white; padding: 10px; font-family: monospace;
-            z-index: 9999;
-        }
+        button.action-btn:hover { background: #81ecec; color: black; }
     </style>
 </head>
 <body>
 
-    <div id="error-log"></div>
-
     <div id="start-screen">
-        <h1 style="font-size: 60px; color: #a29bfe; margin-bottom: 40px; text-shadow: 0 0 20px #6c5ce7;">SUFFIXIA</h1>
-        <button id="start-btn" onclick="initGame()">PLAY GAME</button>
-        <p style="color:#aaa;">(Click to Start Audio & Graphics)</p>
+        <h1 style="font-size: 70px; color: #a29bfe; margin-bottom: 10px; text-shadow: 0 0 30px #6c5ce7;">SUFFIXIA</h1>
+        <p style="color:#aaa; margin-bottom: 40px; font-size: 18px;">The Legend of the Word Warden</p>
+        <button id="start-btn" onclick="initGame()">BEGIN ADVENTURE</button>
     </div>
     
     <div id="hud">
-        <div class="hud-item">🔑 <span id="key-count">0</span></div>
-        <div class="hud-item">🧪 <span id="potion-status">OFF</span></div>
+        <div class="hud-item">🏆 <span id="score-val" class="hud-value">0</span></div>
+        <div class="hud-item">🔑 <span id="key-count" class="hud-value">0</span></div>
+        <div class="hud-item">🧪 <span id="potion-status" class="hud-value">OFF</span></div>
+        <div class="hud-item" style="border-left: 1px solid #555; padding-left: 20px;">
+            RANK: <span id="rank-display">NOVICE</span>
+        </div>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -105,10 +102,10 @@
         <div id="battle-ui" style="display:none">
             <input type="text" id="answer" placeholder="Type answer..." autocomplete="off">
             <br>
-            <button onclick="checkAnswer()">CAST SPELL</button>
+            <button class="action-btn" onclick="checkAnswer()">CAST SPELL</button>
         </div>
         
-        <button id="close-btn" onclick="closeUI()" style="display:none">CONTINUE</button>
+        <button id="close-btn" class="action-btn" onclick="closeUI()" style="display:none">CONTINUE</button>
         <p id="feedback" style="color:#ff7675; font-weight:bold; min-height: 20px; margin-top:15px;"></p>
     </div>
 
@@ -118,23 +115,18 @@
         const CANVAS = document.getElementById("gameCanvas");
         const CTX = CANVAS.getContext("2d");
 
-        // --- 2. AUDIO ENGINE (SAFE MODE) ---
+        // --- 2. AUDIO ENGINE (Safe Mode) ---
         const Audio = {
             ctx: null,
             active: false,
-            
             init: function() {
                 try {
                     const AudioContext = window.AudioContext || window.webkitAudioContext;
                     this.ctx = new AudioContext();
                     this.active = true;
                     this.startBGM();
-                } catch (e) {
-                    console.warn("Audio disabled: " + e.message);
-                    this.active = false;
-                }
+                } catch (e) { this.active = false; }
             },
-
             playTone: function(freq, type, duration) {
                 if (!this.active || !this.ctx) return;
                 try {
@@ -142,33 +134,29 @@
                     const gain = this.ctx.createGain();
                     osc.type = type;
                     osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                    gain.gain.setValueAtTime(0.05, this.ctx.currentTime); // Lower volume
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
                     osc.start();
                     osc.stop(this.ctx.currentTime + duration);
                 } catch(e) {}
             },
-
-            step: () => Audio.playTone(100, 'triangle', 0.05),
             pickup: () => { Audio.playTone(600, 'sine', 0.1); setTimeout(() => Audio.playTone(1200, 'sine', 0.2), 100); },
             unlock: () => { Audio.playTone(200, 'sawtooth', 0.2); setTimeout(() => Audio.playTone(400, 'sawtooth', 0.3), 200); },
             magic: () => Audio.playTone(600, 'sine', 0.3),
             error: () => Audio.playTone(100, 'sawtooth', 0.3),
-            win: () => {
-                if(!Audio.active) return;
-                [523, 659, 784, 1046].forEach((n, i) => setTimeout(() => Audio.playTone(n, 'square', 0.4), i * 150));
+            levelup: () => {
+                [440, 554, 659, 880].forEach((n, i) => setTimeout(() => Audio.playTone(n, 'square', 0.4), i * 100));
             },
-
             startBGM: function() {
                 if (!this.active || !this.ctx) return;
                 try {
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
-                    osc.frequency.value = 55; // Deep Drone
+                    osc.frequency.value = 55; 
                     osc.type = 'triangle';
-                    gain.gain.value = 0.1; 
+                    gain.gain.value = 0.05; 
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
                     osc.start();
@@ -177,15 +165,7 @@
         };
 
         // --- 3. ASSETS ---
-        const ASSETS = {
-            "@": "images/hero.png",
-            "#": "images/wall.png",
-            ".": "images/floor.png",
-            "N": "images/npc.png",
-            ">": "images/stairs.png",
-            "E": "images/enemy.png",
-            "$": "images/boss.png"
-        };
+        const ASSETS = { "@": "images/hero.png", "#": "images/wall.png", ".": "images/floor.png", "N": "images/npc.png", ">": "images/stairs.png", "E": "images/enemy.png", "$": "images/boss.png" };
         const IMAGES = {};
         let assetsLoaded = 0;
         const totalAssets = Object.keys(ASSETS).length;
@@ -200,40 +180,39 @@
             }
         }
         
-        // --- 4. QUESTION BANK ---
+        // --- 4. DATA ---
         const REGULAR_QUESTIONS = [
             { a: "greenish", q: "Somewhat green." }, { a: "boyish", q: "Like a boy." },
             { a: "girlish", q: "Like a girl." }, { a: "childish", q: "Immature; like a child." },
             { a: "ticklish", q: "Sensitive to tickling." }, { a: "feverish", q: "Having a fever." },
             { a: "stylish", q: "Fashionable." }, { a: "foolish", q: "Lacking sense." },
-            { a: "selfish", q: "Caring only for self." }, { a: "pinkish", q: "Slightly pink." },
-            { a: "sweetish", q: "Somewhat sweet." }, { a: "tallish", q: "Somewhat tall." },
-            { a: "darkish", q: "Somewhat dark." }, { a: "coldish", q: "Slightly cold." },
-            { a: "oldish", q: "Somewhat old." }, { a: "youngish", q: "Somewhat young." },
-            { a: "wildish", q: "Somewhat wild." }, { a: "dampish", q: "Slightly wet." },
-            { a: "warmish", q: "Slightly warm." }, { a: "slowish", q: "Somewhat slow." },
-            { a: "fastish", q: "Somewhat fast." }, { a: "flatish", q: "Somewhat flat." },
-            { a: "roundish", q: "Somewhat round." }, { a: "shortish", q: "Somewhat short." },
-            { a: "longish", q: "Somewhat long." }, { a: "goodish", q: "Fairly good." },
-            { a: "badish", q: "Somewhat bad." }, { a: "hardish", q: "Somewhat hard." },
-            { a: "softish", q: "Somewhat soft." }, { a: "sheepish", q: "Embarrassed or shy." },
-            { a: "bookish", q: "Fond of reading." }, { a: "owlishes", q: "Wise like an owl." },
-            { a: "modish", q: "Trendy." }, { a: "sluggish", q: "Slow-moving." },
-            { a: "peckish", q: "Hungry." }, { a: "squeamish", q: "Easily nauseated." },
-            { a: "clownish", q: "Funny or silly." }, { a: "waspish", q: "Angry or irritable." }
+            { a: "selfish", q: "Caring only for self." }, { a: "pinkish", q: "Slightly pink." }
         ];
 
         const BOSS_QUESTIONS = [
             { a: "adjective", q: "Does the suffix '-ish' turn a noun into a Verb or Adjective?" },
             { a: "quality of", q: "Does '-ish' mean 'without' or 'having the quality of'?" },
-            { a: "noun", q: "To make 'Foolish', do you add -ish to a Noun or Verb?" },
-            { a: "somewhat", q: "In 'Greenish', does it mean 'very' or 'somewhat'?" },
-            { a: "approximation", q: "In 'Seven-ish', does it imply precision or approximation?" }
+            { a: "noun", q: "To make 'Foolish', do you add -ish to a Noun or Verb?" }
         ];
 
-        // --- 5. GAME STATE ---
+        // --- 5. STORY & RANKS ---
+        const STORY_TEXT = [
+            "Welcome, Word Warden. The Suffix Sorcerer has stolen the endings of our words! Without them, 'Greenish' is just 'Green', and 'Childish' is just a 'Child'. You must reclaim them!",
+            "You have entered the Whispering Halls. The enemies here are stronger. Beware of hidden traps in the floor!",
+            "The Throne Room. The Sorcerer waits behind the final door. Prepare your mind for the ultimate test!"
+        ];
+
+        const RANKS = [
+            { score: 0, title: "NOVICE" },
+            { score: 200, title: "APPRENTICE" },
+            { score: 500, title: "SPELLBINDER" },
+            { score: 800, title: "WORD MASTER" },
+            { score: 1200, title: "LEGEND" }
+        ];
+
+        // --- 6. GAME STATE ---
         let player = { x: 1, y: 1 };
-        let inventory = { keys: 0, vision: false };
+        let inventory = { keys: 0, vision: false, score: 0 };
         let levelIdx = 0;
         let isPaused = false;
         let currentEnemy = null;
@@ -241,75 +220,36 @@
         let items = [];
         let moveTimer = 0;
 
-        // --- 6. LEVELS ---
+        // --- 7. LEVELS ---
         const LEVELS = [
-            // LEVEL 1: Start
-            [
-                "####################",
-                "#@.......E....K....#", 
-                "#.N................#", 
-                "#######D############", 
-                "#...........E......#", 
-                "#...P.......#......#", 
-                "#...#.......E......#", 
-                "#...#...E....>.....#",
-                "#...#..............#",
-                "####################"
-            ],
-            // LEVEL 2: Loop
-            [
-                "#######################",
-                "#@....#...D.......>...#",
-                "#####.#.#######.#######",
-                "#...#.#.#.....#.......#",
-                "#...E.#.#..E..#...E...#",
-                "#.....#.#.....#.......#",
-                "#.#####.#######.#######",
-                "#P...................K#",
-                "#######################"
-            ],
-            // LEVEL 3: Boss
-            [
-                "#######################",
-                "#@................K...#",
-                "#######.#######.#######",
-                "#.....#.#.....#.#.....#",
-                "#..E..#.#..$..#.#..E..#",
-                "#.....#.#.....#.#.....#",
-                "#.#####.###D###.#######",
-                "#.........H...........#",
-                "#######################"
-            ]
+            // Level 1
+            [ "####################", "#@.......E....K....#", "#.N...H............#", "#######D############", "#...........E......#", "#...P.......#......#", "#...#.......E......#", "#...#...E....>.....#", "#...#..............#", "####################" ],
+            // Level 2
+            [ "#######################", "#@....#...D.......>...#", "#####.#.#######.#######", "#...#.#.#.....#.......#", "#...E.#.#..E..#...E...#", "#.....#.#.....#.......#", "#.#####.#######.#######", "#P...................K#", "#######################" ],
+            // Level 3
+            [ "#######################", "#@................K...#", "#######.#######.#######", "#.....#.#.....#.#.....#", "#..E..#.#..$..#.#..E..#", "#.....#.#.....#.#.....#", "#.#####.###D###.#######", "#.........H...........#", "#######################" ]
         ];
 
         function initGame() {
-            // 1. Hide Start Screen
             document.getElementById("start-screen").style.display = "none";
-            
-            // 2. Try Audio
             Audio.init();
-
-            // 3. Resize Canvas
             resize();
-            
-            // 4. Load Assets & Level
             preloadImages();
             loadLevel(0);
-            
-            // 5. Start Loop
             requestAnimationFrame(gameLoop);
         }
 
         function loadLevel(idx) {
             levelIdx = idx;
             if (levelIdx >= LEVELS.length) {
-                Audio.win();
-                alert("YOU HAVE CONQUERED SUFFIXIA!");
+                Audio.levelup();
+                alert(`YOU WIN! Final Score: ${inventory.score}`);
                 location.reload(); 
                 return;
             }
-            if (idx > 0) Audio.win();
+            if (idx > 0) Audio.levelup();
 
+            // Load Map
             const map = LEVELS[levelIdx];
             walls = [];
             items = [];
@@ -317,32 +257,42 @@
             for (let y = 0; y < map.length; y++) {
                 for (let x = 0; x < map[y].length; x++) {
                     let char = map[y][x];
-                    
                     if (char === "#") walls.push({x, y});
                     else if (char === "@") { player.x = x; player.y = y; }
                     else if (char === "E" || char === "$" || char === "H") {
                         let pool = (char === "$") ? BOSS_QUESTIONS : REGULAR_QUESTIONS;
                         let qData = pool[Math.floor(Math.random() * pool.length)];
-                        items.push({ 
-                            x, y, type: char, quest: qData, id: Math.random(),
-                            isMoving: (char === "E") 
-                        });
+                        items.push({ x, y, type: char, quest: qData, id: Math.random(), isMoving: (char === "E") });
                     } 
-                    else if ("KDP>NS".includes(char)) {
-                        items.push({ x, y, type: char, id: Math.random() });
-                    }
+                    else if ("KDP>NS".includes(char)) items.push({ x, y, type: char, id: Math.random() });
                 }
             }
+            
             updateHUD();
+            // Show Story Popup
+            setTimeout(() => openUI("CHAPTER " + (idx+1), STORY_TEXT[idx], false), 500);
         }
 
         function updateHUD() {
             document.getElementById("key-count").innerText = inventory.keys;
+            document.getElementById("score-val").innerText = inventory.score;
             document.getElementById("potion-status").innerText = inventory.vision ? "ON" : "OFF";
             document.getElementById("potion-status").style.color = inventory.vision ? "#55efc4" : "#636e72";
+            
+            // Calculate Rank
+            let currentRank = "NOVICE";
+            for(let r of RANKS) {
+                if(inventory.score >= r.score) currentRank = r.title;
+            }
+            document.getElementById("rank-display").innerText = currentRank;
         }
 
-        // --- 7. GAME LOOP ---
+        function addScore(points) {
+            inventory.score += points;
+            updateHUD();
+        }
+
+        // --- 8. GAME LOOP ---
         function gameLoop() {
             if(!isPaused) {
                 updateEnemies();
@@ -374,7 +324,7 @@
         function isPlayer(x, y) { return player.x === x && player.y === y; }
         function isItem(x, y) { return items.some(i => i.x === x && i.y === y); }
 
-        // --- 8. DRAWING ---
+        // --- 9. DRAWING ---
         function draw() {
             CTX.fillStyle = "#050505";
             CTX.fillRect(0, 0, CANVAS.width, CANVAS.height);
@@ -396,9 +346,8 @@
 
             const bob = Math.sin(Date.now() / 200) * 5;
             items.forEach(item => {
-                if (item.type === "H" && !inventory.vision) {
-                    // Invisible
-                } else {
+                if (item.type === "H" && !inventory.vision) { /* Invisible */ } 
+                else {
                     let yOffset = (item.type === "E" || item.type === "N" || item.type === "$") ? bob : 0;
                     drawTile(item.x, item.y, item.type, yOffset);
                 }
@@ -421,16 +370,15 @@
             if (type === "#") { CTX.fillStyle = "#444"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); return; }
             if (type === ".") { CTX.fillStyle = "#111"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); return; }
             
-            CTX.font = (TILE_SIZE * 0.7) + "px Arial";
+            CTX.font = (TILE_SIZE * 0.6) + "px Arial";
             CTX.textAlign = "center";
             CTX.textBaseline = "middle";
             let cx = px + TILE_SIZE/2;
             let cy = py + TILE_SIZE/2;
 
             if (type === "K") { CTX.fillText("🔑", cx, cy); }
-            else if (type === "D") { CTX.fillStyle = "#a65c00"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); CTX.fillStyle="white"; CTX.fillText("🔒", cx, cy); }
+            else if (type === "D") { CTX.fillStyle = "#e67e22"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); CTX.fillStyle="white"; CTX.fillText("🔒", cx, cy); }
             else if (type === "P") { CTX.fillText("🧪", cx, cy); }
-            else if (type === "S") { CTX.fillStyle = "#333"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); CTX.fillStyle="#555"; CTX.fillText("?", cx, cy); } 
             else if (type === "H") { CTX.fillText("⚠️", cx, cy); } 
             else if (type === "@") { CTX.fillStyle = "#6c5ce7"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
             else if (type === "E") { CTX.fillStyle = "#d63031"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
@@ -438,7 +386,7 @@
             else { CTX.fillStyle = "green"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
         }
 
-        // --- 9. MOVEMENT & INTERACTION ---
+        // --- 10. MOVEMENT ---
         window.addEventListener("keydown", (e) => {
             if (isPaused) return;
             let dx = 0, dy = 0;
@@ -450,23 +398,16 @@
             if (dx !== 0 || dy !== 0) {
                 let nx = player.x + dx;
                 let ny = player.y + dy;
-
-                if (isWall(nx, ny)) {
-                    Audio.error(); 
-                    return; 
-                }
+                if (isWall(nx, ny)) return;
 
                 let item = items.find(i => i.x === nx && i.y === ny);
-                
                 if (item) {
-                    if (item.type === "N") {
-                        openUI("Wizard", "I heard there is a Key hidden in this very room!", false);
-                    } 
+                    if (item.type === "N") { openUI("Wizard", "Greetings! I am the keeper of these halls.", false); } 
                     else if (item.type === "K") {
                         inventory.keys++;
-                        updateHUD();
                         Audio.pickup();
                         items = items.filter(i => i !== item); 
+                        addScore(20);
                         player.x = nx; player.y = ny;
                     }
                     else if (item.type === "P") {
@@ -475,23 +416,19 @@
                         Audio.pickup();
                         openUI("Potion Drinker", "You can now see hidden traps!", false);
                         items = items.filter(i => i !== item); 
+                        addScore(20);
                         player.x = nx; player.y = ny;
                     }
                     else if (item.type === "D") {
                         if (inventory.keys > 0) {
                             inventory.keys--;
-                            updateHUD();
                             Audio.unlock();
                             items = items.filter(i => i !== item); 
-                            openUI("Unlocked!", "You used a key to open the door.", false);
+                            openUI("Unlocked!", "You used a key.", false);
+                            updateHUD();
                         } else {
-                            Audio.error();
-                            openUI("Locked", "You need a key 🔑 to open this door.", false);
+                            openUI("Locked", "You need a key 🔑.", false);
                         }
-                    }
-                    else if (item.type === "S") {
-                        player.x = nx; player.y = ny;
-                        Audio.step();
                     }
                     else if (item.type === "E" || item.type === "H") {
                         currentEnemy = item;
@@ -502,17 +439,17 @@
                         openUI("BOSS BATTLE", item.quest.q, true);
                     } 
                     else if (item.type === ">") {
+                        addScore(100);
                         loadLevel(levelIdx + 1);
                     }
                 } else {
                     player.x = nx;
                     player.y = ny;
-                    Audio.step();
                 }
             }
         });
 
-        // --- 10. UI LOGIC ---
+        // --- 11. UI SYSTEM ---
         const UI = document.getElementById("ui-layer");
         const INPUT = document.getElementById("answer");
 
@@ -545,21 +482,15 @@
             const correct = currentEnemy.quest.a.toLowerCase().trim();
             if (attempt === correct) {
                 Audio.magic();
-                
-                // BOSS VICTORY CHECK
                 if (currentEnemy.type === "$") {
                     items = items.filter(i => i !== currentEnemy);
+                    addScore(500);
                     closeUI();
-                    setTimeout(() => {
-                        Audio.win();
-                        alert("BOSS DEFEATED! YOU WIN!");
-                        levelIdx = 0;
-                        location.reload();
-                    }, 500);
+                    setTimeout(() => { alert("BOSS DEFEATED! YOU WIN!"); location.reload(); }, 500);
                     return;
                 }
-
                 items = items.filter(i => i !== currentEnemy);
+                addScore(50);
                 closeUI();
             } else {
                 Audio.error();
@@ -578,13 +509,6 @@
         }
         window.addEventListener('resize', resize);
         window.closeUI = closeUI;
-
-        // Crash Reporter
-        window.onerror = function(message, source, lineno) {
-            const el = document.getElementById("error-log");
-            el.style.display = "block";
-            el.innerHTML += `<div>Error: ${message} (Line ${lineno})</div>`;
-        };
 
     </script>
 </body>
