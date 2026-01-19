@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Suffixia: Gold Edition</title>
+    <title>Suffixia: Crystal Clear Edition</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body { 
             margin: 0; 
-            background: #050505; 
+            background: #222; /* Lighter background for better contrast outside map */
             overflow: hidden; 
-            font-family: 'Verdana', sans-serif; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             color: white; 
             user-select: none;
             -webkit-user-select: none;
@@ -17,22 +17,23 @@
         
         canvas { 
             display: block; 
-            background: #000; 
+            background: #111; 
             margin: 0 auto;
+            image-rendering: pixelated; /* CRISP PIXELS */
         }
         
         /* HUD */
         #hud {
-            position: absolute; top: 10px; left: 10px;
-            background: rgba(0,0,0,0.85); padding: 10px 15px; border-radius: 12px;
-            border: 2px solid #555; pointer-events: none;
-            display: flex; gap: 15px; font-size: 16px; font-weight: bold;
+            position: absolute; top: 15px; left: 15px;
+            background: rgba(20, 20, 30, 0.85); 
+            padding: 12px 20px; border-radius: 16px;
+            border: 2px solid rgba(255,255,255,0.2); 
+            pointer-events: none;
+            display: flex; gap: 20px; font-size: 18px; font-weight: bold;
             box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 10;
-            flex-wrap: wrap;
         }
-        .hud-item { display: flex; align-items: center; gap: 5px; }
-        .hud-value { color: #a29bfe; }
-        #rank-display { color: #ffeaa7; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
+        .hud-item { display: flex; align-items: center; gap: 8px; text-shadow: 1px 1px 0 #000; }
+        .hud-value { color: #55efc4; }
 
         /* START SCREEN */
         #start-screen {
@@ -41,87 +42,83 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         #start-btn {
-            padding: 20px 50px; font-size: 24px; font-weight: bold; 
-            background: #6c5ce7; color: white; border: none; border-radius: 50px;
-            cursor: pointer; box-shadow: 0 0 30px rgba(108, 92, 231, 0.6);
-            margin-bottom: 20px; transition: transform 0.2s;
+            padding: 20px 60px; font-size: 24px; font-weight: bold; 
+            background: linear-gradient(45deg, #6c5ce7, #a29bfe); 
+            color: white; border: none; border-radius: 50px;
+            cursor: pointer; box-shadow: 0 0 30px rgba(108, 92, 231, 0.5);
+            transition: transform 0.2s;
         }
-        #start-btn:hover { transform: scale(1.05); background: #81ecec; color: #2d3436; }
+        #start-btn:hover { transform: scale(1.05); }
 
         /* UI POPUP */
         #ui-layer {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(25, 25, 35, 0.98); 
+            background: rgba(15, 15, 20, 0.98); 
             color: #eee; 
-            padding: 30px; 
+            padding: 40px; 
             border: 4px solid #6c5ce7;
             border-radius: 20px;
             text-align: center; 
             display: none; 
-            width: 80%; max-width: 500px;
+            width: 85%; max-width: 500px;
             box-shadow: 0 0 100px rgba(108, 92, 231, 0.6);
             z-index: 100;
         }
 
-        h2#ui-title { margin-top: 0; color: #a29bfe; text-transform: uppercase; letter-spacing: 3px; border-bottom: 2px solid #444; padding-bottom: 15px; font-size: 24px;}
-        p#ui-text { font-size: 18px; line-height: 1.6; margin: 20px 0; min-height: 50px; }
+        h2#ui-title { margin-top: 0; color: #a29bfe; text-transform: uppercase; letter-spacing: 4px; border-bottom: 2px solid #444; padding-bottom: 20px; font-size: 24px;}
+        p#ui-text { font-size: 20px; line-height: 1.6; margin: 30px 0; color: #fff; }
 
         input { 
-            padding: 15px; font-size: 22px; text-align: center; width: 80%; margin-top: 15px;
-            background: #2d3436; border: 2px solid #636e72; color: white; border-radius: 10px; outline: none;
+            padding: 15px; font-size: 24px; text-align: center; width: 80%; margin-top: 15px;
+            background: #2d3436; border: 3px solid #636e72; color: white; border-radius: 12px; outline: none;
         }
-        input:focus { border-color: #a29bfe; box-shadow: 0 0 10px #a29bfe; }
+        input:focus { border-color: #a29bfe; }
         
         button.action-btn { 
-            padding: 15px 30px; font-size: 18px; cursor: pointer; margin-top: 25px;
-            background: #6c5ce7; color: white; border: none; border-radius: 8px; font-weight: bold;
-            transition: all 0.2s; width: 100%;
+            padding: 15px 40px; font-size: 20px; cursor: pointer; margin-top: 30px;
+            background: #6c5ce7; color: white; border: none; border-radius: 12px; font-weight: bold;
+            width: 100%; transition: background 0.2s;
         }
-        button.action-btn:hover { background: #81ecec; color: black; }
+        button.action-btn:hover { background: #81ecec; color: #2d3436; }
 
-        /* MOBILE CONTROLS */
+        /* CONTROLS */
         #mobile-controls {
-            position: absolute; bottom: 20px; left: 20px;
+            position: absolute; bottom: 30px; left: 30px;
             display: grid; 
-            grid-template-columns: 60px 60px 60px;
-            grid-template-rows: 60px 60px;
-            gap: 10px;
-            z-index: 50;
+            grid-template-columns: 80px 80px 80px;
+            grid-template-rows: 80px 80px;
+            gap: 10px; z-index: 50;
         }
-        
         .dpad-btn {
-            width: 60px; height: 60px;
+            width: 80px; height: 80px;
             background: rgba(255, 255, 255, 0.2);
             border: 2px solid rgba(255, 255, 255, 0.4);
-            border-radius: 10px;
-            color: white; font-size: 24px;
+            border-radius: 50%;
+            color: white; font-size: 30px;
             display: flex; justify-content: center; align-items: center;
-            cursor: pointer; user-select: none;
-            transition: background 0.1s;
+            cursor: pointer;
         }
-        .dpad-btn:active { background: rgba(108, 92, 231, 0.8); border-color: #a29bfe; }
-        
+        .dpad-btn:active { background: rgba(108, 92, 231, 0.8); }
         #btn-up { grid-column: 2; grid-row: 1; }
         #btn-left { grid-column: 1; grid-row: 2; }
         #btn-down { grid-column: 2; grid-row: 2; }
         #btn-right { grid-column: 3; grid-row: 2; }
-
     </style>
 </head>
 <body>
 
     <div id="start-screen">
-        <h1 style="font-size: 50px; color: #a29bfe; margin-bottom: 10px; text-shadow: 0 0 30px #6c5ce7;">SUFFIXIA</h1>
-        <p style="color:#aaa; margin-bottom: 40px; font-size: 16px;">The Legend of the Word Warden</p>
-        <button id="start-btn" onclick="initGame()">PLAY</button>
+        <h1 style="font-size: 60px; color: #a29bfe; margin-bottom: 20px;">SUFFIXIA</h1>
+        <p style="color:#ccc; margin-bottom: 50px; font-size: 20px;">The Legend of the Word Warden</p>
+        <button id="start-btn" onclick="initGame()">START ADVENTURE</button>
     </div>
     
     <div id="hud">
         <div class="hud-item">🏆 <span id="score-val" class="hud-value">0</span></div>
         <div class="hud-item">🔑 <span id="key-count" class="hud-value">0</span></div>
         <div class="hud-item">🧪 <span id="potion-status" class="hud-value">OFF</span></div>
-        <div class="hud-item" style="border-left: 1px solid #555; padding-left: 10px;">
-            <span id="rank-display">NOVICE</span>
+        <div class="hud-item" style="border-left: 2px solid #555; padding-left: 15px;">
+            <span id="rank-display" style="color:#ffeaa7">NOVICE</span>
         </div>
     </div>
 
@@ -137,27 +134,49 @@
     <div id="ui-layer">
         <h2 id="ui-title">Quest</h2>
         <p id="ui-text">...</p>
-        
         <div id="battle-ui" style="display:none">
             <input type="text" id="answer" placeholder="Type answer..." autocomplete="off">
             <br>
             <button class="action-btn" onclick="checkAnswer()">CAST SPELL</button>
         </div>
-        
         <button id="close-btn" class="action-btn" onclick="closeUI()" style="display:none">CONTINUE</button>
         <p id="feedback" style="color:#ff7675; font-weight:bold; min-height: 20px; margin-top:15px;"></p>
     </div>
 
     <script>
-        // --- 1. CONFIGURATION ---
-        const TILE_SIZE = 64; 
+        // --- 1. BIGGER TILES ---
+        const TILE_SIZE = 80; // Large, clear tiles
         const CANVAS = document.getElementById("gameCanvas");
         const CTX = CANVAS.getContext("2d");
 
-        // --- 2. AUDIO ENGINE ---
+        // --- PARTICLE SYSTEM ---
+        let particles = [];
+        function createParticles(x, y, color, count=10) {
+            for(let i=0; i<count; i++) {
+                particles.push({
+                    x: x * TILE_SIZE + TILE_SIZE/2,
+                    y: y * TILE_SIZE + TILE_SIZE/2,
+                    vx: (Math.random() - 0.5) * 12,
+                    vy: (Math.random() - 0.5) * 12,
+                    life: 1.0, color: color
+                });
+            }
+        }
+        function updateParticles() {
+            particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.05; });
+            particles = particles.filter(p => p.life > 0);
+        }
+        function drawParticles(ctx, offsetX, offsetY) {
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
+                ctx.fillRect(p.x + offsetX, p.y + offsetY, 6, 6);
+                ctx.globalAlpha = 1.0;
+            });
+        }
+
+        // --- AUDIO ---
         const Audio = {
-            ctx: null,
-            active: false,
+            ctx: null, active: false,
             init: function() {
                 try {
                     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -166,43 +185,37 @@
                     this.startBGM();
                 } catch (e) { this.active = false; }
             },
-            playTone: function(freq, type, duration) {
+            playTone: function(freq, type, duration, vol=0.1) {
                 if (!this.active || !this.ctx) return;
                 try {
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
-                    osc.type = type;
-                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                    gain.gain.setValueAtTime(0.05, this.ctx.currentTime); 
+                    osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime); 
                     gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-                    osc.start();
-                    osc.stop(this.ctx.currentTime + duration);
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(); osc.stop(this.ctx.currentTime + duration);
                 } catch(e) {}
             },
-            pickup: () => { Audio.playTone(600, 'sine', 0.1); setTimeout(() => Audio.playTone(1200, 'sine', 0.2), 100); },
-            unlock: () => { Audio.playTone(200, 'sawtooth', 0.2); setTimeout(() => Audio.playTone(400, 'sawtooth', 0.3), 200); },
-            magic: () => Audio.playTone(600, 'sine', 0.3),
+            pickup: () => Audio.playTone(800, 'sine', 0.2),
+            unlock: () => Audio.playTone(300, 'square', 0.3),
+            magic: () => Audio.playTone(600, 'sine', 0.4),
             error: () => Audio.playTone(100, 'sawtooth', 0.3),
-            step: () => Audio.playTone(100, 'triangle', 0.05),
+            step: () => Audio.playTone(50, 'triangle', 0.05, 0.02),
             levelup: () => { [440, 554, 659, 880].forEach((n, i) => setTimeout(() => Audio.playTone(n, 'square', 0.4), i * 100)); },
             startBGM: function() {
                 if (!this.active || !this.ctx) return;
                 try {
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
-                    osc.frequency.value = 55; 
-                    osc.type = 'triangle';
+                    osc.frequency.value = 50; osc.type = 'triangle';
                     gain.gain.value = 0.05; 
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
+                    osc.connect(gain); gain.connect(this.ctx.destination);
                     osc.start();
                 } catch(e) {}
             }
         };
 
-        // --- 3. ASSETS ---
         const ASSETS = { "@": "images/hero.png", "#": "images/wall.png", ".": "images/floor.png", "N": "images/npc.png", ">": "images/stairs.png", "E": "images/enemy.png", "$": "images/boss.png" };
         const IMAGES = {};
         let assetsLoaded = 0;
@@ -218,7 +231,6 @@
             }
         }
         
-        // --- 4. DATA ---
         const REGULAR_QUESTIONS = [
             { a: "greenish", q: "Somewhat green." }, { a: "boyish", q: "Like a boy." },
             { a: "girlish", q: "Like a girl." }, { a: "childish", q: "Immature; like a child." },
@@ -226,28 +238,20 @@
             { a: "stylish", q: "Fashionable." }, { a: "foolish", q: "Lacking sense." },
             { a: "selfish", q: "Caring only for self." }, { a: "pinkish", q: "Slightly pink." }
         ];
-
         const BOSS_QUESTIONS = [
             { a: "adjective", q: "Does the suffix '-ish' turn a noun into a Verb or Adjective?" },
             { a: "quality of", q: "Does '-ish' mean 'without' or 'having the quality of'?" },
             { a: "noun", q: "To make 'Foolish', do you add -ish to a Noun or Verb?" }
         ];
-
         const STORY_TEXT = [
             "Welcome, Word Warden. The Suffix Sorcerer has stolen the endings of our words! You must reclaim them!",
             "You have entered the Chasm. The rooms are split by a great wall. You must find the key to open the central door!",
             "The Throne Room. The Sorcerer waits behind the final door."
         ];
-
         const RANKS = [
-            { score: 0, title: "NOVICE" },
-            { score: 200, title: "APPRENTICE" },
-            { score: 500, title: "SPELLBINDER" },
-            { score: 800, title: "WORD MASTER" },
-            { score: 1200, title: "LEGEND" }
+            { score: 0, title: "NOVICE" }, { score: 200, title: "APPRENTICE" }, { score: 500, title: "SPELLBINDER" }, { score: 800, title: "WORD MASTER" }, { score: 1200, title: "LEGEND" }
         ];
 
-        // --- 5. GAME STATE ---
         let player = { x: 1, y: 1 };
         let inventory = { keys: 0, vision: false, score: 0 };
         let levelIdx = 0;
@@ -256,48 +260,12 @@
         let walls = [];
         let items = [];
         let moveTimer = 0;
+        let shake = 0;
 
-        // --- 6. LEVELS (FINAL FIX) ---
         const LEVELS = [
-            // LEVEL 1: TUTORIAL
-            [ 
-                "####################", 
-                "#@.......E....K....#", 
-                "#.N...H............#", 
-                "#######D############", 
-                "#...........E......#", 
-                "#...P.......#......#", 
-                "#...#.......E......#", 
-                "#...#...E....>.....#", 
-                "#...#..............#", 
-                "####################" 
-            ],
-            
-            // LEVEL 2: THE BRIDGE (Working)
-            [
-                "#######################",
-                "#@........#...........#", 
-                "#.........#...........#",
-                "#...E.....#.....E.....#",
-                "#.........D...........#", 
-                "#...K.....#...........#", // Key in start room
-                "#.........#......>....#", 
-                "#.........#...........#",
-                "#######################"
-            ],
-            
-            // LEVEL 3: THE THRONE ROOM (Fixed Key Location)
-            [ 
-                "#######################", 
-                "#@.................K..#", // Key at Top Right (Unblocked)
-                "#..#################..#", // Inner Wall
-                "#..#...............#..#",
-                "#..#...E...$.......#..#", // Boss
-                "#..#...............#..#",
-                "#..#######...#######..#",
-                "#..........D..........#", // Door blocks entry to boss
-                "#######################" 
-            ]
+            [ "####################", "#@.......E....K....#", "#.N...H............#", "#######D############", "#...........E......#", "#...P.......#......#", "#...#.......E......#", "#...#...E....>.....#", "#...#..............#", "####################" ],
+            [ "#######################", "#@........#...........#", "#.........#...........#", "#...E.....#.....E.....#", "#.........D...........#", "#...K.....#...........#", "#.........#......>....#", "#.........#...........#", "#######################" ],
+            [ "#######################", "#@.................K..#", "#..#################..#", "#..#...............#..#", "#..#...E...$.......#..#", "#..#...............#..#", "#..#######...#######..#", "#..........D..........#", "#######################" ]
         ];
 
         function initGame() {
@@ -346,23 +314,21 @@
             document.getElementById("potion-status").innerText = inventory.vision ? "ON" : "OFF";
             document.getElementById("potion-status").style.color = inventory.vision ? "#55efc4" : "#636e72";
             let currentRank = "NOVICE";
-            for(let r of RANKS) {
-                if(inventory.score >= r.score) currentRank = r.title;
-            }
+            for(let r of RANKS) if(inventory.score >= r.score) currentRank = r.title;
             document.getElementById("rank-display").innerText = currentRank;
         }
 
         function addScore(points) { inventory.score += points; updateHUD(); }
 
-        // --- 7. GAME LOOP ---
         function gameLoop() {
-            if(!isPaused) { updateEnemies(); draw(); }
+            if(!isPaused) { updateEnemies(); updateParticles(); draw(); }
+            if(shake > 0) shake--;
             requestAnimationFrame(gameLoop);
         }
 
         function updateEnemies() {
             moveTimer++;
-            if (moveTimer > 80) { 
+            if (moveTimer > 60) { 
                 moveTimer = 0;
                 items.forEach(item => {
                     if (item.isMoving) {
@@ -383,12 +349,15 @@
         function isPlayer(x, y) { return player.x === x && player.y === y; }
         function isItem(x, y) { return items.some(i => i.x === x && i.y === y); }
 
-        // --- 8. DRAWING ---
         function draw() {
-            CTX.fillStyle = "#050505";
+            let shakeX = shake > 0 ? (Math.random() - 0.5) * 10 : 0;
+            let shakeY = shake > 0 ? (Math.random() - 0.5) * 10 : 0;
+
+            CTX.fillStyle = "#111"; // Bright background
             CTX.fillRect(0, 0, CANVAS.width, CANVAS.height);
-            let offsetX = (CANVAS.width / 2) - (player.x * TILE_SIZE) - (TILE_SIZE / 2);
-            let offsetY = (CANVAS.height / 2) - (player.y * TILE_SIZE) - (TILE_SIZE / 2);
+            let offsetX = (CANVAS.width / 2) - (player.x * TILE_SIZE) - (TILE_SIZE / 2) + shakeX;
+            let offsetY = (CANVAS.height / 2) - (player.y * TILE_SIZE) - (TILE_SIZE / 2) + shakeY;
+            
             CTX.save();
             CTX.translate(offsetX, offsetY);
 
@@ -396,7 +365,10 @@
             for (let y = 0; y < map.length; y++) {
                 for (let x = 0; x < map[y].length; x++) {
                     let char = map[y][x];
-                    drawTile(x, y, ".", 0); 
+                    // Floor (Checkerboard)
+                    if ((x+y)%2 === 0) CTX.fillStyle = "#222"; else CTX.fillStyle = "#2a2a2a";
+                    CTX.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                    
                     if (char === "#") drawTile(x, y, "#", 0);
                 }
             }
@@ -411,6 +383,9 @@
             });
 
             drawTile(player.x, player.y, "@", bob);
+            drawParticles(CTX, 0, 0); 
+
+            // NO LIGHTING OVERLAY - FULL BRIGHTNESS
             CTX.restore();
         }
 
@@ -422,8 +397,14 @@
                 CTX.drawImage(img, px, py, TILE_SIZE, TILE_SIZE);
                 return;
             } 
-            if (type === "#") { CTX.fillStyle = "#444"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); return; }
-            if (type === ".") { CTX.fillStyle = "#111"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); return; }
+            if (type === "#") { 
+                CTX.fillStyle = "#444"; 
+                CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); 
+                CTX.strokeStyle = "#666";
+                CTX.lineWidth = 4;
+                CTX.strokeRect(px, py, TILE_SIZE, TILE_SIZE);
+                return; 
+            }
             
             CTX.font = (TILE_SIZE * 0.6) + "px Arial";
             CTX.textAlign = "center"; CTX.textBaseline = "middle";
@@ -439,26 +420,28 @@
             else { CTX.fillStyle = "green"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
         }
 
-        // --- 9. MOVEMENT ---
         function handleInput(dx, dy) {
             if (isPaused) return;
             if (dx !== 0 || dy !== 0) {
                 let nx = player.x + dx;
                 let ny = player.y + dy;
-                if (isWall(nx, ny)) { Audio.error(); return; }
+                if (isWall(nx, ny)) { Audio.error(); shake = 5; return; }
 
                 let item = items.find(i => i.x === nx && i.y === ny);
                 if (item) {
                     if (item.type === "N") { openUI("Wizard", "Greetings!", false); } 
                     else if (item.type === "K") {
-                        inventory.keys++; Audio.pickup(); items = items.filter(i => i !== item); addScore(20); player.x = nx; player.y = ny;
+                        inventory.keys++; Audio.pickup(); createParticles(nx, ny, "#ffeaa7");
+                        items = items.filter(i => i !== item); addScore(20); player.x = nx; player.y = ny;
                     }
                     else if (item.type === "P") {
-                        inventory.vision = true; updateHUD(); Audio.pickup(); openUI("Potion Drinker", "Hidden traps revealed!", false); items = items.filter(i => i !== item); addScore(20); player.x = nx; player.y = ny;
+                        inventory.vision = true; updateHUD(); Audio.pickup(); createParticles(nx, ny, "#55efc4");
+                        openUI("Potion Drinker", "Hidden traps revealed!", false); items = items.filter(i => i !== item); addScore(20); player.x = nx; player.y = ny;
                     }
                     else if (item.type === "D") {
                         if (inventory.keys > 0) {
-                            inventory.keys--; Audio.unlock(); items = items.filter(i => i !== item); openUI("Unlocked!", "Door opened.", false); updateHUD();
+                            inventory.keys--; Audio.unlock(); createParticles(nx, ny, "#e67e22");
+                            items = items.filter(i => i !== item); openUI("Unlocked!", "Door opened.", false); updateHUD();
                         } else {
                             openUI("Locked", "You need a key 🔑.", false);
                         }
@@ -488,7 +471,6 @@
             handleInput(dx, dy);
         });
 
-        // --- 10. UI SYSTEM ---
         const UI = document.getElementById("ui-layer");
         const INPUT = document.getElementById("answer");
 
@@ -499,7 +481,6 @@
             document.getElementById("ui-text").innerText = text;
             document.getElementById("feedback").innerText = "";
             INPUT.value = "";
-
             if (isBattle) {
                 document.getElementById("battle-ui").style.display = "block";
                 document.getElementById("close-btn").style.display = "none";
@@ -510,10 +491,7 @@
             }
         }
 
-        function closeUI() {
-            UI.style.display = "none";
-            isPaused = false;
-        }
+        function closeUI() { UI.style.display = "none"; isPaused = false; }
 
         window.checkAnswer = function() {
             if (!currentEnemy) return;
@@ -521,6 +499,7 @@
             const correct = currentEnemy.quest.a.toLowerCase().trim();
             if (attempt === correct) {
                 Audio.magic();
+                createParticles(currentEnemy.x, currentEnemy.y, "#a29bfe", 20);
                 if (currentEnemy.type === "$") {
                     items = items.filter(i => i !== currentEnemy);
                     addScore(500);
@@ -533,18 +512,18 @@
                 closeUI();
             } else {
                 Audio.error();
+                shake = 5;
                 document.getElementById("feedback").innerText = "WRONG! Try again.";
             }
         }
 
-        INPUT.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") checkAnswer();
-        });
+        INPUT.addEventListener("keypress", (e) => { if (e.key === "Enter") checkAnswer(); });
         
-        function resize() {
-            CANVAS.width = window.innerWidth;
-            CANVAS.height = window.innerHeight;
-            if(assetsLoaded === totalAssets) draw();
+        function resize() { 
+            CANVAS.width = window.innerWidth; 
+            CANVAS.height = window.innerHeight; 
+            CTX.imageSmoothingEnabled = false; // VITAL FOR CRISP PIXELS
+            if(assetsLoaded === totalAssets) draw(); 
         }
         window.addEventListener('resize', resize);
         window.closeUI = closeUI;
