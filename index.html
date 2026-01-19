@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Suffixia: Verified Solvable</title>
+    <title>Suffixia: Audio Edition</title>
     <style>
         body { 
             margin: 0; 
@@ -9,6 +9,7 @@
             overflow: hidden; 
             font-family: 'Verdana', sans-serif; 
             color: white; 
+            user-select: none;
         }
         
         canvas { 
@@ -19,11 +20,18 @@
         /* HUD (Heads Up Display) */
         #hud {
             position: absolute; top: 10px; left: 10px;
-            background: rgba(0,0,0,0.7); padding: 10px; border-radius: 8px;
-            border: 1px solid #444; pointer-events: none;
+            background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 8px;
+            border: 2px solid #555; pointer-events: auto;
             display: flex; gap: 20px; font-size: 20px; font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
-        .hud-item { display: flex; align-items: center; gap: 8px; }
+        .hud-item { display: flex; align-items: center; gap: 8px; cursor: default; }
+        
+        /* Sound Toggle Button */
+        #sound-btn {
+            cursor: pointer; transition: color 0.2s;
+        }
+        #sound-btn:hover { color: #55efc4; text-shadow: 0 0 5px #55efc4; }
 
         /* UI OVERLAY */
         #ui-layer {
@@ -37,6 +45,7 @@
             display: none; 
             width: 550px;
             box-shadow: 0 0 80px rgba(108, 92, 231, 0.5);
+            z-index: 100;
         }
 
         h2#ui-title { margin-top: 0; color: #a29bfe; text-transform: uppercase; letter-spacing: 2px; border-bottom: 2px solid #444; padding-bottom: 15px;}
@@ -63,9 +72,10 @@
 </head>
 <body>
 
-    <div id="loading">GENERATING DUNGEON...</div>
+    <div id="loading">INITIALIZING AUDIO...</div>
     
     <div id="hud">
+        <div class="hud-item" id="sound-btn" onclick="toggleSound()">🔊 <span id="sound-text">ON</span></div>
         <div class="hud-item">🔑 <span id="key-count">0</span></div>
         <div class="hud-item">🧪 <span id="potion-status">OFF</span></div>
     </div>
@@ -92,7 +102,109 @@
         const CANVAS = document.getElementById("gameCanvas");
         const CTX = CANVAS.getContext("2d");
 
-        // --- 2. ASSETS ---
+        // --- 2. SOUND ENGINE (Synthesizer) ---
+        // Generates sounds using math instead of files!
+        const Audio = {
+            ctx: null,
+            enabled: true,
+            bgmOsc: null,
+            
+            init: function() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                    this.startBGM();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            },
+
+            playTone: function(freq, type, duration, vol=0.1) {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = type; // sine, square, sawtooth, triangle
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            },
+
+            // SFX Presets
+            step: () => Audio.playTone(100, 'triangle', 0.05, 0.05),
+            pickup: () => Audio.playTone(600, 'sine', 0.3, 0.1),
+            magic: () => {
+                if (!Audio.enabled || !Audio.ctx) return;
+                const osc = Audio.ctx.createOscillator();
+                const gain = Audio.ctx.createGain();
+                osc.frequency.setValueAtTime(400, Audio.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, Audio.ctx.currentTime + 0.5);
+                gain.gain.setValueAtTime(0.1, Audio.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, Audio.ctx.currentTime + 0.5);
+                osc.connect(gain);
+                gain.connect(Audio.ctx.destination);
+                osc.start();
+                osc.stop(Audio.ctx.currentTime + 0.5);
+            },
+            error: () => Audio.playTone(150, 'sawtooth', 0.3, 0.1),
+            unlock: () => {
+                Audio.playTone(300, 'square', 0.1);
+                setTimeout(() => Audio.playTone(400, 'square', 0.2), 100);
+            },
+            win: () => {
+                let notes = [523.25, 659.25, 783.99, 1046.50]; // C Major
+                notes.forEach((n, i) => setTimeout(() => Audio.playTone(n, 'square', 0.4, 0.1), i * 150));
+            },
+
+            // Background Music (Dark Drone)
+            startBGM: function() {
+                if (!this.enabled || this.bgmOsc) return;
+                // Create a low drone for dungeon atmosphere
+                this.bgmOsc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                this.bgmOsc.type = 'triangle';
+                this.bgmOsc.frequency.setValueAtTime(55, this.ctx.currentTime); // Low A
+                gain.gain.value = 0.03; // Very quiet
+                
+                this.bgmOsc.connect(gain);
+                gain.connect(this.ctx.destination);
+                this.bgmOsc.start();
+                
+                // Slight modulation to make it spooky
+                setInterval(() => {
+                    if(this.bgmOsc && this.enabled) {
+                        const freq = 55 + Math.sin(Date.now() / 2000) * 2;
+                        this.bgmOsc.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.5);
+                    }
+                }, 100);
+            },
+
+            toggle: function() {
+                this.enabled = !this.enabled;
+                if (!this.enabled && this.ctx) {
+                    this.ctx.suspend();
+                    document.getElementById("sound-text").innerText = "OFF";
+                    document.getElementById("sound-btn").style.opacity = "0.5";
+                } else if (this.enabled && this.ctx) {
+                    this.ctx.resume();
+                    document.getElementById("sound-text").innerText = "ON";
+                    document.getElementById("sound-btn").style.opacity = "1";
+                    if(!this.bgmOsc) this.startBGM();
+                }
+            }
+        };
+
+        window.toggleSound = () => Audio.toggle();
+
+        // --- 3. ASSETS ---
         const ASSETS = {
             "@": "images/hero.png",
             "#": "images/wall.png",
@@ -123,7 +235,7 @@
             }
         }
 
-        // --- 3. QUESTION BANK ---
+        // --- 4. QUESTION BANK ---
         const REGULAR_QUESTIONS = [
             { a: "greenish", q: "Somewhat green." }, { a: "boyish", q: "Like a boy." },
             { a: "girlish", q: "Like a girl." }, { a: "childish", q: "Immature; like a child." },
@@ -154,7 +266,7 @@
             { a: "approximation", q: "In 'Seven-ish', does it imply precision or approximation?" }
         ];
 
-        // --- 4. GAME STATE ---
+        // --- 5. GAME STATE ---
         let player = { x: 1, y: 1 };
         let inventory = { keys: 0, vision: false };
         let levelIdx = 0;
@@ -164,12 +276,9 @@
         let items = [];
         let moveTimer = 0;
 
-        // --- 5. VERIFIED LEVEL MAPS ---
-        // K = Key, D = Locked Door, P = Potion, S = Secret Wall, H = Hidden Trap
+        // --- 6. LEVELS ---
         const LEVELS = [
             // LEVEL 1: VERIFIED SOLVABLE
-            // Key 'K' is in the top right, openly accessible.
-            // Door 'D' blocks the way to Exit '>'.
             [
                 "####################",
                 "#@.......E....K....#", 
@@ -183,33 +292,28 @@
                 "####################"
             ],
             // LEVEL 2: VERIFIED SOLVABLE
-            // Player starts top-left.
-            // Key 'K' is in the top-right room (Must go around).
-            // Door 'D' is at the bottom middle, blocking the exit room.
-            // No secret walls required to finish.
             [
                 "#######################",
                 "#@..............E.....#",
                 "#.......#######.......#",
-                "#.......#.....#...K...#", // Key in this room
+                "#.......#.....#...K...#", 
                 "#...E...#.....#.......#",
                 "#.......#.....#######.#",
                 "#######.#######.......#",
-                "#P......D............>#", // Door blocks exit. Potion on left.
+                "#P......D............>#", 
                 "#.......#######.......#",
                 "#######################"
             ],
             // LEVEL 3: VERIFIED SOLVABLE
-            // Open layout. Key 'K' top right. Door 'D' blocks Boss '$'.
             [
                 "#######################",
-                "#@................K...#", // Key accessible
+                "#@................K...#",
                 "#.#.#############.###.#",
                 "#.#.E.....H.....E.#...#",
                 "#.#...............#...#",
                 "#.#...#########...#...#",
                 "#.....#...$.......#...#",
-                "#######...D...#####...#", // Door protects boss
+                "#######...D...#####...#",
                 "#.........E...........#",
                 "#######################"
             ]
@@ -218,9 +322,12 @@
         function loadLevel(idx) {
             levelIdx = idx;
             if (levelIdx >= LEVELS.length) {
+                Audio.win();
                 alert("YOU HAVE CONQUERED SUFFIXIA!");
                 levelIdx = 0;
                 inventory = { keys: 0, vision: false }; 
+            } else {
+                Audio.win(); // Level complete sound
             }
 
             const map = LEVELS[levelIdx];
@@ -255,7 +362,7 @@
             document.getElementById("potion-status").style.color = inventory.vision ? "#55efc4" : "#636e72";
         }
 
-        // --- 6. GAME LOOP ---
+        // --- 7. GAME LOOP ---
         function gameLoop() {
             if(!isPaused) {
                 updateEnemies();
@@ -266,7 +373,7 @@
 
         function updateEnemies() {
             moveTimer++;
-            if (moveTimer > 80) { // Slower movement
+            if (moveTimer > 80) { 
                 moveTimer = 0;
                 items.forEach(item => {
                     if (item.isMoving) {
@@ -287,7 +394,7 @@
         function isPlayer(x, y) { return player.x === x && player.y === y; }
         function isItem(x, y) { return items.some(i => i.x === x && i.y === y); }
 
-        // --- 7. DRAWING ---
+        // --- 8. DRAWING ---
         function draw() {
             CANVAS.width = window.innerWidth;
             CANVAS.height = window.innerHeight;
@@ -316,7 +423,7 @@
             const bob = Math.sin(Date.now() / 200) * 5;
             items.forEach(item => {
                 if (item.type === "H" && !inventory.vision) {
-                    // Invisible trap!
+                    // Invisible
                 } else {
                     let yOffset = (item.type === "E" || item.type === "N" || item.type === "$") ? bob : 0;
                     drawTile(item.x, item.y, item.type, yOffset);
@@ -334,17 +441,14 @@
             const py = (y * TILE_SIZE) + yOffset;
             const img = IMAGES[type];
 
-            // 1. Draw Images
             if (img && img.complete && img.naturalHeight !== 0) {
                 CTX.drawImage(img, px, py, TILE_SIZE, TILE_SIZE);
                 return;
             } 
             
-            // 2. Draw Code-Generated Items
             if (type === "#") { CTX.fillStyle = "#444"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); return; }
             if (type === ".") { CTX.fillStyle = "#111"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); return; }
             
-            // Special Items with Emojis
             CTX.font = (TILE_SIZE * 0.7) + "px Arial";
             CTX.textAlign = "center";
             CTX.textBaseline = "middle";
@@ -354,16 +458,19 @@
             if (type === "K") { CTX.fillText("🔑", cx, cy); }
             else if (type === "D") { CTX.fillStyle = "#a65c00"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); CTX.fillStyle="white"; CTX.fillText("🔒", cx, cy); }
             else if (type === "P") { CTX.fillText("🧪", cx, cy); }
-            else if (type === "S") { CTX.fillStyle = "#333"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); CTX.fillStyle="#555"; CTX.fillText("?", cx, cy); } // Secret Wall
-            else if (type === "H") { CTX.fillText("⚠️", cx, cy); } // Visible trap
+            else if (type === "S") { CTX.fillStyle = "#333"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); CTX.fillStyle="#555"; CTX.fillText("?", cx, cy); } 
+            else if (type === "H") { CTX.fillText("⚠️", cx, cy); } 
             else if (type === "@") { CTX.fillStyle = "#6c5ce7"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
             else if (type === "E") { CTX.fillStyle = "#d63031"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
             else if (type === ">") { CTX.fillStyle = "#ffeaa7"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
             else { CTX.fillStyle = "green"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
         }
 
-        // --- 8. MOVEMENT & INTERACTION ---
+        // --- 9. MOVEMENT & INTERACTION ---
         window.addEventListener("keydown", (e) => {
+            // Start Audio on first keypress
+            Audio.init();
+
             if (isPaused) return;
             let dx = 0, dy = 0;
             if (e.key === "ArrowLeft") dx = -1;
@@ -375,7 +482,10 @@
                 let nx = player.x + dx;
                 let ny = player.y + dy;
 
-                if (isWall(nx, ny)) return; // Solid wall
+                if (isWall(nx, ny)) {
+                    Audio.error(); // Bump sound
+                    return; 
+                }
 
                 let item = items.find(i => i.x === nx && i.y === ny);
                 
@@ -386,12 +496,14 @@
                     else if (item.type === "K") {
                         inventory.keys++;
                         updateHUD();
+                        Audio.pickup();
                         items = items.filter(i => i !== item); 
                         player.x = nx; player.y = ny;
                     }
                     else if (item.type === "P") {
                         inventory.vision = true;
                         updateHUD();
+                        Audio.pickup();
                         openUI("Potion Drinker", "You can now see hidden traps!", false);
                         items = items.filter(i => i !== item); 
                         player.x = nx; player.y = ny;
@@ -400,15 +512,17 @@
                         if (inventory.keys > 0) {
                             inventory.keys--;
                             updateHUD();
-                            items = items.filter(i => i !== item); // Open Door
+                            Audio.unlock();
+                            items = items.filter(i => i !== item); 
                             openUI("Unlocked!", "You used a key to open the door.", false);
                         } else {
+                            Audio.error();
                             openUI("Locked", "You need a key 🔑 to open this door.", false);
                         }
                     }
                     else if (item.type === "S") {
-                        // Secret wall - just walk through!
                         player.x = nx; player.y = ny;
+                        Audio.step();
                     }
                     else if (item.type === "E" || item.type === "$" || item.type === "H") {
                         currentEnemy = item;
@@ -421,11 +535,12 @@
                 } else {
                     player.x = nx;
                     player.y = ny;
+                    Audio.step();
                 }
             }
         });
 
-        // --- 9. UI LOGIC ---
+        // --- 10. UI LOGIC ---
         const UI = document.getElementById("ui-layer");
         const INPUT = document.getElementById("answer");
 
@@ -457,9 +572,11 @@
             const attempt = INPUT.value.toLowerCase().trim();
             const correct = currentEnemy.quest.a.toLowerCase().trim();
             if (attempt === correct) {
+                Audio.magic();
                 items = items.filter(i => i !== currentEnemy);
                 closeUI();
             } else {
+                Audio.error();
                 document.getElementById("feedback").innerText = "WRONG! Try again.";
             }
         }
