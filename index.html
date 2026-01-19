@@ -1,167 +1,211 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>The Legend of Suffixia</title>
+    <title>The Legend of Suffixia: Advanced Quest</title>
     <meta charset="utf-8">
     <style>
-        body { margin: 0; overflow: hidden; background-color: #202028; font-family: 'Verdana', sans-serif; }
+        body { margin: 0; overflow: hidden; background-color: #1a1a1a; font-family: 'Verdana', sans-serif; }
         
         /* The Question Box Overlay */
         #ui-layer {
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            background: white;
-            padding: 20px;
+            background: #f4f4f4;
+            padding: 25px;
             border: 4px solid #4a90e2;
-            border-radius: 10px;
+            border-radius: 12px;
             text-align: center;
             display: none; /* Hidden by default */
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            width: 300px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.7);
+            width: 400px;
+            z-index: 100;
         }
-        input { padding: 10px; font-size: 16px; width: 80%; margin-top: 10px; }
-        button { padding: 10px 20px; font-size: 16px; margin-top: 10px; background: #4a90e2; color: white; border: none; cursor: pointer; }
+        h2 { margin-top: 0; color: #333; font-size: 20px; }
+        p.scenario { font-style: italic; color: #555; margin-bottom: 20px; font-size: 16px; }
+        input { padding: 12px; font-size: 18px; width: 80%; border: 2px solid #ddd; border-radius: 4px; }
+        button { padding: 12px 24px; font-size: 18px; margin-top: 15px; background: #4a90e2; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background 0.2s; }
         button:hover { background: #357abd; }
-        .instructions { position: absolute; bottom: 10px; left: 10px; color: white; opacity: 0.7; pointer-events: none; }
+        .instructions { position: absolute; bottom: 20px; left: 20px; color: white; opacity: 0.8; font-size: 14px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px;}
     </style>
 </head>
 <body>
 
     <div id="ui-layer">
-        <h2 id="question-text">Question goes here</h2>
-        <input type="text" id="answer-input" placeholder="Type answer...">
+        <h2 id="question-header">Monster Encounter!</h2>
+        <p class="scenario" id="question-text">...</p>
+        <input type="text" id="answer-input" placeholder="Type the -ish word..." autocomplete="off">
         <br>
-        <button onclick="checkAnswer()">Attack!</button>
-        <p id="feedback" style="font-weight: bold; color: red;"></p>
+        <button onclick="checkAnswer()">Cast Spell</button>
+        <p id="feedback" style="font-weight: bold; color: #d9534f; min-height: 24px;"></p>
     </div>
 
-    <div class="instructions">Use ARROW KEYS to move. Touch enemies to battle.</div>
+    <div class="instructions">
+        <strong>CONTROLS:</strong> Arrow Keys to Move • Touch Enemies to Battle<br>
+        <strong>GOAL:</strong> Solve the riddles using the suffix <em>-ish</em>.
+    </div>
 
     <script src="https://unpkg.com/kaboom@3000.0.1/dist/kaboom.js"></script>
 
     <script>
-    // 1. Initialize the Game
+    // 1. Initialize Game
     kaboom({
-        background: [80, 160, 80], // Green grass color
-        scale: 2, // Make everything bigger
+        background: [40, 40, 50], // Darker dungeon floor
+        scale: 2,
     });
 
-    // 2. Define Graphics (Using Emojis as Sprites so no downloads needed!)
-    loadSprite("hero", "https://ui-avatars.com/api/?name=Link&background=0D8ABC&color=fff&size=64&font-size=0.5"); 
-    
-    // We define "Tiles" for the map
+    // 2. Load "Sprites" (Using Emojis)
+    loadSprite("hero", "https://ui-avatars.com/api/?name=Link&background=0D8ABC&color=fff&size=64&font-size=0.5");
+
+    // 3. Define the Educational Content (The "Curriculum")
     const LEVEL_CONFIG = {
         tileWidth: 48,
         tileHeight: 48,
         tiles: {
-            "=": () => [ text("🌲"), area(), body({ isStatic: true }), anchor("center"), "wall" ], // Tree
-            "#": () => [ rect(48, 48), color(100, 100, 100), area(), body({ isStatic: true }), "wall" ], // Rock Wall
-            "^": () => [ text("🏠"), area(), body({ isStatic: true }), anchor("center"), "house" ], // House
-            "@": () => [ text("🧝"), area(), body(), anchor("center"), "player" ], // Player Start
-            "!": () => [ text("👹"), area(), body({ isStatic: true }), anchor("center"), "enemy", { 
-                word: "childish", 
-                clue: "This monster acts like a baby! (Child + ish)" 
+            // TERRAIN
+            "=": () => [ text("🌲"), area(), body({ isStatic: true }), anchor("center"), "wall" ],
+            "#": () => [ rect(48, 48), color(80, 80, 80), area(), body({ isStatic: true }), "wall" ], 
+            "~": () => [ text("🌊"), area(), body({ isStatic: true }), anchor("center"), "water" ],
+            "@": () => [ text("🧝"), area(), body(), anchor("center"), "player" ],
+
+            // ENEMIES (The Questions)
+            
+            // Level 1: Basic Recall (Color/Appearance)
+            "1": () => [ text("👻"), area(), body({ isStatic: true }), anchor("center"), "enemy", { 
+                word: "greenish", 
+                header: "The sickly ghost...",
+                clue: "This ghost isn't bright green, but it has a sick, pale tint. It is..." 
             }],
-            "?": () => [ text("👻"), area(), body({ isStatic: true }), anchor("center"), "enemy", { 
-                word: "reddish", 
-                clue: "This ghost isn't quite red... it's just..." 
+
+            // Level 2: Math/Time Approximation (Application)
+            "2": () => [ text("⏰"), area(), body({ isStatic: true }), anchor("center"), "enemy", { 
+                word: "noonish", 
+                header: "The Timekeeper blocks you!",
+                clue: "The meeting was supposed to be at 12:00 PM, but they said to arrive broadly around that time. When should you arrive?" 
             }],
-            "$": () => [ text("🧙"), area(), body({ isStatic: true }), anchor("center"), "boss", { 
-                word: "foolish", 
-                clue: "BOSS: He acts like a fool! He is..." 
+
+            // Level 3: Metaphor/Idiom (Analysis)
+            "3": () => [ text("🐑"), area(), body({ isStatic: true }), anchor("center"), "enemy", { 
+                word: "sheepish", 
+                header: "A shy creature appears...",
+                clue: "The boy dropped his tray in the cafeteria. He looked up, feeling embarrassed and shy. He gave a ______ grin." 
+            }],
+
+            // Level 4: Personality/Nuance (Evaluation)
+            "4": () => [ text("👺"), area(), body({ isStatic: true }), anchor("center"), "enemy", { 
+                word: "selfish", 
+                header: " The Greedy Goblin!",
+                clue: "This goblin refuses to share anything. He only cares about his own needs. His behavior is..." 
+            }],
+
+            // Level 5: Quantity/Estimate (Math Connection)
+            "5": () => [ text("🏺"), area(), body({ isStatic: true }), anchor("center"), "enemy", { 
+                word: "fullish", 
+                header: "The Potion Master",
+                clue: "Is the glass full? Not mostly, but somewhat. It's not empty, it's..." 
+            }],
+
+            // BOSS: Complex Synthesis
+            "$": () => [ text("🐉"), area(), body({ isStatic: true }), anchor("center"), "boss", { 
+                word: "squeamish", 
+                header: "THE DRAGON OF DISGUST",
+                clue: "FINAL TEST: I faint when I see blood. I am easily sickened by gross things. I am..." 
             }]
         }
     };
 
-    // 3. Draw the Map (Visual Layout)
+    // 4. Map Design (Visual Layout)
     const level = addLevel([
-        "################",
-        "#              #",
-        "#   ^          #",
-        "#      !       #",
-        "#              #",
-        "#   =      =   #",
-        "#       @      #",
-        "#   =      =   #",
-        "#       ?      #",
-        "#              #",
-        "#              #",
-        "#      $       #",
-        "################",
+        "###################",
+        "#      #          #",
+        "#  @   #    2     #", // Start & Time Question
+        "#      #          #",
+        "#######=     =####",
+        "#          ~      #",
+        "#    1     ~   3  #", // Color & Sheep Question
+        "#          ~      #",
+        "####=  =##########",
+        "#          #      #",
+        "#    4     #   5  #", // Selfish & Fullish
+        "#          #      #",
+        "#######  #########",
+        "#                 #",
+        "#        $        #", // BOSS
+        "#                 #",
+        "###################",
     ], LEVEL_CONFIG);
 
-    // 4. Add the Player Character
+    // 5. Player Setup
     const player = add([
-        text("🧝"), // Using an Elf emoji as the player
+        text("🧝"), 
         pos(center()),
-        area(), // Enables collision detection
-        body(), // Gives the player physics (so they can't walk through walls)
+        area(), 
+        body(), 
         anchor("center"),
         "hero"
     ]);
 
-    // 5. Movement Logic
-    const SPEED = 200;
+    // 6. Movement
+    const SPEED = 220;
     onKeyDown("left", () => player.move(-SPEED, 0));
     onKeyDown("right", () => player.move(SPEED, 0));
     onKeyDown("up", () => player.move(0, -SPEED));
     onKeyDown("down", () => player.move(0, SPEED));
 
-    // 6. Camera follows player
     player.onUpdate(() => {
         camPos(player.pos);
     });
 
-    // --- GAMEPLAY LOGIC ---
+    // --- BATTLE LOGIC ---
 
-    let currentEnemy = null; // Remembers who we are fighting
+    let currentEnemy = null;
 
-    // When player collides with an "enemy" tag
-    player.onCollide("enemy", (enemy) => {
-        startBattle(enemy);
-    });
-
-    player.onCollide("boss", (boss) => {
-        startBattle(boss);
-    });
+    // Handle collision with enemies
+    player.onCollide("enemy", (enemy) => startBattle(enemy));
+    player.onCollide("boss", (boss) => startBattle(boss));
 
     function startBattle(enemy) {
         currentEnemy = enemy;
-        // Pause the game
-        debug.paused = true;
+        debug.paused = true; // Pause movement
         
-        // Show the HTML Question Box
-        const ui = document.getElementById("ui-layer");
-        const qText = document.getElementById("question-text");
-        const feedback = document.getElementById("feedback");
+        // Populate UI
+        document.getElementById("ui-layer").style.display = "block";
+        document.getElementById("question-header").innerText = enemy.header;
+        document.getElementById("question-text").innerText = enemy.clue;
+        document.getElementById("feedback").innerText = "";
+        
         const input = document.getElementById("answer-input");
-
-        ui.style.display = "block";
-        qText.innerText = enemy.clue;
-        feedback.innerText = "";
         input.value = "";
         input.focus();
     }
 
-    // Function called by the HTML button
+    // Check Answer Logic
     window.checkAnswer = function() {
         const input = document.getElementById("answer-input");
         const ui = document.getElementById("ui-layer");
         const feedback = document.getElementById("feedback");
 
         if (input.value.toLowerCase().trim() === currentEnemy.word) {
-            // Correct!
-            currentEnemy.destroy(); // Remove enemy from screen
-            ui.style.display = "none"; // Hide box
-            debug.paused = false; // Unpause game
-            shake(10); // Screen shake effect
+            // Correct
+            currentEnemy.destroy(); 
+            ui.style.display = "none"; 
+            debug.paused = false; 
+            shake(5); 
         } else {
             // Incorrect
-            feedback.innerText = "Wrong! Try again.";
-            shake(5);
+            feedback.innerText = "The spell fizzled! Try again.";
+            shake(2);
+            input.value = "";
+            input.focus();
         }
     }
+    
+    // Allow pressing "Enter" to submit
+    document.getElementById("answer-input").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            window.checkAnswer();
+        }
+    });
 
     </script>
 </body>
