@@ -1,33 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Suffixia: Diagnostic Mode</title>
+    <title>Suffixia: Geometric Edition</title>
     <meta charset="utf-8">
     <style>
-        body { 
-            margin: 0; 
-            background-color: #111; 
-            font-family: monospace; 
-            color: white; 
-            overflow: hidden; 
-        }
+        body { margin: 0; background-color: #111; font-family: monospace; color: white; overflow: hidden; }
 
-        /* CRASH REPORTER (The Red Box) */
+        /* CRASH REPORTER */
         #error-console {
-            display: none;
-            position: absolute; top: 0; left: 0; width: 100%;
-            background: rgba(200, 0, 0, 0.9); 
-            color: white; padding: 20px; 
-            z-index: 9999; font-size: 18px; 
-            white-space: pre-wrap; border-bottom: 4px solid white;
+            display: none; position: absolute; top: 0; left: 0; width: 100%;
+            background: rgba(200, 0, 0, 0.9); color: white; padding: 20px; 
+            z-index: 9999; font-size: 18px; white-space: pre-wrap; border-bottom: 4px solid white;
         }
 
         /* START OVERLAY */
         #start-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); display: flex; flex-direction: column; 
-            justify-content: center; align-items: center;
-            z-index: 200; cursor: pointer;
+            background: rgba(0,0,0,0.9); display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; z-index: 200; cursor: pointer;
         }
 
         /* GAME UI */
@@ -40,30 +30,24 @@
         input { padding: 10px; font-size: 16px; width: 80%; text-align: center; margin: 10px 0; }
         button { padding: 10px 20px; cursor: pointer; background: #333; color: white; border: none; font-weight: bold; font-size: 16px; }
         button:hover { background: #555; }
-        
-        canvas { outline: none; } /* Remove blue highlight on focus */
+        canvas { outline: none; }
     </style>
 </head>
 <body>
 
-    <div id="error-console">NO ERRORS DETECTED YET...</div>
+    <div id="error-console"></div>
 
     <script>
-        // This script runs first. If ANYTHING breaks, it catches it.
         window.onerror = function(message, source, lineno, colno, error) {
-            const consoleBox = document.getElementById("error-console");
-            consoleBox.style.display = "block";
-            consoleBox.innerHTML = "⚠️ CRASH DETECTED ⚠️\n\n" + 
-                                   "Error: " + message + "\n" +
-                                   "Line: " + lineno + "\n\n" +
-                                   "PLEASE SHARE THIS MESSAGE.";
-            return false; // Stop the error from blocking alert
+            const box = document.getElementById("error-console");
+            box.style.display = "block";
+            box.innerText = "⚠️ ERROR: " + message + "\nLine: " + lineno;
         };
     </script>
 
     <div id="start-overlay">
-        <h1 style="font-size: 40px; margin-bottom: 10px;">CLICK TO START DIAGNOSTIC</h1>
-        <p style="color: #aaa;">(Use Arrow Keys to Move)</p>
+        <h1 style="font-size: 40px; margin-bottom: 10px;">CLICK TO START</h1>
+        <p style="color: #aaa;">(Pure Code Mode - No Images)</p>
     </div>
 
     <div id="ui-layer">
@@ -76,65 +60,22 @@
         <div id="npc-controls" style="display:none;">
             <button id="close-btn">LEAVE</button>
         </div>
-        <p id="feedback" style="color:red; font-weight:bold; height:20px;"></p>
     </div>
 
     <script src="https://unpkg.com/kaboom@3000.0.1/dist/kaboom.js"></script>
 
     <script>
-    // Safe startup wrapper
     try {
-
-        // A. Initialize Kaboom
         kaboom({
             background: [20, 20, 30], 
             scale: 2, 
             canvas: document.querySelector("canvas"),
-            debug: true, // Shows FPS counter
         });
 
-        // B. Define Assets (Using Code Shapes to prevent loading errors)
-        loadSprite("hero", { width: 16, height: 16, draw() { 
-            drawRect({ width: 16, height: 16, color: rgb(50, 100, 255) }); 
-            drawRect({ width: 4, height: 4, pos: vec2(4,4), color: rgb(255,255,255) });
-        }});
-
-        loadSprite("wall", { width: 16, height: 16, draw() { 
-            drawRect({ width: 16, height: 16, color: rgb(100, 100, 100) }); 
-        }});
-
-        loadSprite("floor", { width: 16, height: 16, draw() { 
-            drawRect({ width: 16, height: 16, color: rgb(30, 30, 40) }); 
-        }});
-
-        loadSprite("enemy", { width: 16, height: 16, draw() { 
-            drawRect({ width: 16, height: 16, color: rgb(255, 50, 50) }); 
-        }});
-
-        loadSprite("npc", { width: 16, height: 16, draw() { 
-            drawRect({ width: 16, height: 16, color: rgb(50, 200, 50) }); 
-        }});
-
-        loadSprite("stairs", { width: 16, height: 16, draw() { 
-            drawRect({ width: 16, height: 16, color: rgb(255, 255, 0) }); 
-        }});
-
-        loadSprite("boss", { width: 32, height: 32, draw() { 
-            drawRect({ width: 32, height: 32, color: rgb(150, 0, 150) }); 
-        }});
-
-        // C. Game Logic
         scene("game", ({ levelIdx }) => {
             
-            // HUD
             add([ text("Level " + (levelIdx + 1), { size: 16 }), pos(10, 10), fixed() ]);
             
-            // Debug text to prove keyboard is working
-            const debugText = add([ 
-                text("Status: Waiting for Input", { size: 12 }), 
-                pos(10, 30), fixed(), color(0, 255, 0) 
-            ]);
-
             const LEVELS = [
                 [
                     "#####################",
@@ -150,53 +91,70 @@
                 ]
             ];
 
-            // Add the level
-            const level = addLevel(LEVELS[0], {
+            // THE FIX: We use rect() and color() instead of sprite()
+            // This bypasses the image loading system entirely.
+            addLevel(LEVELS[0], {
                 tileWidth: 16,
                 tileHeight: 16,
                 tiles: {
-                    "#": () => [ sprite("wall"), area(), body({isStatic:true}), "wall" ],
-                    ".": () => [ sprite("floor") ],
-                    ">": () => [ sprite("stairs"), area(), body({isStatic:true}), "stairs" ],
-                    "@": () => [ sprite("hero"), area({scale:0.8}), body(), anchor("center"), "player" ],
-                    "N": () => [ sprite("npc"), area(), body({isStatic:true}), anchor("center"), "npc" ],
-                    "1": () => [ sprite("enemy"), area(), body({isStatic:true}), anchor("center"), "enemy", {id:"1"} ],
+                    // WALL (Gray Block)
+                    "#": () => [ 
+                        rect(16, 16), color(100, 100, 100), 
+                        area(), body({isStatic:true}), "wall" 
+                    ],
+                    // FLOOR (Dark Block - Visual Only)
+                    ".": () => [ 
+                        rect(16, 16), color(30, 30, 40) 
+                    ],
+                    // STAIRS (Yellow Block)
+                    ">": () => [ 
+                        rect(16, 16), color(255, 255, 0), 
+                        area(), body({isStatic:true}), "stairs" 
+                    ],
+                    // HERO (Blue Block)
+                    "@": () => [ 
+                        rect(16, 16), color(0, 0, 255), 
+                        area({scale:0.8}), body(), anchor("center"), "player" 
+                    ],
+                    // NPC (Green Block)
+                    "N": () => [ 
+                        rect(16, 16), color(0, 255, 0), 
+                        area(), body({isStatic:true}), anchor("center"), "npc" 
+                    ],
+                    // ENEMY (Red Block)
+                    "1": () => [ 
+                        rect(16, 16), color(255, 0, 0), 
+                        area(), body({isStatic:true}), anchor("center"), "enemy", {id:"1"} 
+                    ],
                 }
             });
 
-            // MOVEMENT - Simplified to prevent crashes
             const SPEED = 140;
-
-            function move(x, y, label) {
-                // We find the player every time a key is pressed to be safe
-                const player = get("player")[0];
-                if (player) {
-                    player.move(x, y);
-                    debugText.text = "Status: Moving " + label;
-                } else {
-                    debugText.text = "Status: Player not found!";
-                }
+            
+            // Movement Logic
+            function move(x, y) {
+                const p = get("player")[0];
+                if(p) p.move(x, y);
             }
 
-            onKeyDown("left", () => move(-SPEED, 0, "Left"));
-            onKeyDown("right", () => move(SPEED, 0, "Right"));
-            onKeyDown("up", () => move(0, -SPEED, "Up"));
-            onKeyDown("down", () => move(0, SPEED, "Down"));
+            onKeyDown("left", () => move(-SPEED, 0));
+            onKeyDown("right", () => move(SPEED, 0));
+            onKeyDown("up", () => move(0, -SPEED));
+            onKeyDown("down", () => move(0, SPEED));
 
-            // CAMERA
+            // Camera
             onUpdate(() => {
-                const player = get("player")[0];
-                if(player) camPos(lerp(camPos(), player.pos, dt()*5));
+                const p = get("player")[0];
+                if(p) camPos(lerp(camPos(), p.pos, dt()*5));
             });
 
-            // INTERACTIONS
-            onCollide("player", "stairs", () => debugText.text = "Hit Stairs!");
+            // Interactions
+            onCollide("player", "stairs", () => debug.log("Win!"));
+            onCollide("player", "npc", () => openModal("Wizard", "Combine words with -ish!", false));
             onCollide("player", "enemy", (p, e) => startBattle(e));
-            onCollide("player", "npc", () => openModal("Wizard", "Go fight the red square!", false));
-
         });
 
-        // D. Battle System (Simplified)
+        // UI Logic
         let currentEnemy = null;
         const QUESTS = { "1": { word: "greenish", title: "Ghost", clue: "Sickly color..." } };
 
@@ -213,14 +171,12 @@
             document.getElementById("ui-text").innerText = text;
             document.getElementById("battle-controls").style.display = isBattle ? "block" : "none";
             document.getElementById("npc-controls").style.display = isBattle ? "none" : "block";
-            
             if(isBattle) setTimeout(() => document.getElementById("answer-input").focus(), 100);
         }
 
         function closeModal() {
             document.getElementById("ui-layer").style.display = "none";
             debug.paused = false;
-            // Refocus canvas so movement works immediately
             document.querySelector("canvas").focus();
         }
 
@@ -231,34 +187,22 @@
                 closeModal();
                 shake(5);
             } else {
-                document.getElementById("feedback").innerText = "WRONG! (Hint: type 'greenish')";
+                alert("Try typing 'greenish'");
             }
         }
 
-        // E. Event Listeners
+        // Start
         document.getElementById("start-overlay").addEventListener("click", () => {
             document.getElementById("start-overlay").style.display = "none";
-            burp(); // Audio check
             go("game", { levelIdx: 0 });
-            
-            // Focus hack to ensure keys work
-            setTimeout(() => {
-                const canvas = document.querySelector("canvas");
-                if(canvas) {
-                    canvas.setAttribute("tabindex", "0");
-                    canvas.focus();
-                }
-            }, 100);
+            setTimeout(() => document.querySelector("canvas").focus(), 100);
         });
 
         document.getElementById("submit-btn").addEventListener("click", checkAnswer);
         document.getElementById("close-btn").addEventListener("click", closeModal);
 
-    } catch (err) {
-        // If the Javascript itself crashes, this catches it
-        const consoleBox = document.getElementById("error-console");
-        consoleBox.style.display = "block";
-        consoleBox.innerHTML = "⚠️ SETUP ERROR ⚠️\n\n" + err.message;
+    } catch (e) {
+        alert("Startup Error: " + e.message);
     }
     </script>
 </body>
