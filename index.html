@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Suffixia: Geometric Edition</title>
+    <title>Suffixia: Focus Fix</title>
     <meta charset="utf-8">
     <style>
-        body { margin: 0; background-color: #111; font-family: monospace; color: white; overflow: hidden; }
-
-        /* CRASH REPORTER */
-        #error-console {
-            display: none; position: absolute; top: 0; left: 0; width: 100%;
-            background: rgba(200, 0, 0, 0.9); color: white; padding: 20px; 
-            z-index: 9999; font-size: 18px; white-space: pre-wrap; border-bottom: 4px solid white;
+        body { 
+            margin: 0; 
+            background-color: #222; 
+            font-family: monospace; 
+            color: white; 
+            overflow: hidden; 
+            user-select: none; /* Prevents highlighting text instead of moving */
         }
 
         /* START OVERLAY */
@@ -20,7 +20,7 @@
             justify-content: center; align-items: center; z-index: 200; cursor: pointer;
         }
 
-        /* GAME UI */
+        /* UI FOR BATTLES */
         #ui-layer {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: #fff; color: #000; padding: 20px; border: 4px solid #444;
@@ -29,25 +29,20 @@
 
         input { padding: 10px; font-size: 16px; width: 80%; text-align: center; margin: 10px 0; }
         button { padding: 10px 20px; cursor: pointer; background: #333; color: white; border: none; font-weight: bold; font-size: 16px; }
-        button:hover { background: #555; }
-        canvas { outline: none; }
+        
+        /* IMPORTANT: This ensures the game canvas can be clicked/focused */
+        canvas { 
+            display: block; 
+            outline: none; 
+            cursor: crosshair;
+        }
     </style>
 </head>
 <body>
 
-    <div id="error-console"></div>
-
-    <script>
-        window.onerror = function(message, source, lineno, colno, error) {
-            const box = document.getElementById("error-console");
-            box.style.display = "block";
-            box.innerText = "⚠️ ERROR: " + message + "\nLine: " + lineno;
-        };
-    </script>
-
     <div id="start-overlay">
         <h1 style="font-size: 40px; margin-bottom: 10px;">CLICK TO START</h1>
-        <p style="color: #aaa;">(Pure Code Mode - No Images)</p>
+        <p style="color: #aaa;">(Click once, then use Arrow Keys)</p>
     </div>
 
     <div id="ui-layer">
@@ -65,145 +60,145 @@
     <script src="https://unpkg.com/kaboom@3000.0.1/dist/kaboom.js"></script>
 
     <script>
-    try {
-        kaboom({
-            background: [20, 20, 30], 
-            scale: 2, 
-            canvas: document.querySelector("canvas"),
-        });
+    // 1. INITIALIZE (Let Kaboom create the canvas automatically)
+    kaboom({
+        background: [20, 20, 30], 
+        scale: 2, 
+        debug: true, // Shows FPS
+    });
 
-        scene("game", ({ levelIdx }) => {
-            
-            add([ text("Level " + (levelIdx + 1), { size: 16 }), pos(10, 10), fixed() ]);
-            
-            const LEVELS = [
-                [
-                    "#####################",
-                    "#...................#",
-                    "#.N.......#.........#", 
-                    "#.........#....1....#", 
-                    "#...#...............#",
-                    "#...#........@......#", 
-                    "#...#...............#",
-                    "#...#.........>.....#", 
-                    "#...#...............#",
-                    "#####################",
-                ]
-            ];
+    // 2. MAIN SCENE
+    scene("game", ({ levelIdx }) => {
+        
+        // --- DEBUG TEXT (Top Left) ---
+        // This tells us if the keyboard is working
+        const debugLabel = add([ 
+            text("Status: Waiting for input...", { size: 14 }), 
+            pos(10, 10), 
+            fixed(),
+            color(0, 255, 0)
+        ]);
+        
+        const LEVELS = [
+            [
+                "#####################",
+                "#...................#",
+                "#.N.......#.........#", 
+                "#.........#....1....#", 
+                "#...#...............#",
+                "#...#........@......#", 
+                "#...#...............#",
+                "#...#.........>.....#", 
+                "#...#...............#",
+                "#####################",
+            ]
+        ];
 
-            // THE FIX: We use rect() and color() instead of sprite()
-            // This bypasses the image loading system entirely.
-            addLevel(LEVELS[0], {
-                tileWidth: 16,
-                tileHeight: 16,
-                tiles: {
-                    // WALL (Gray Block)
-                    "#": () => [ 
-                        rect(16, 16), color(100, 100, 100), 
-                        area(), body({isStatic:true}), "wall" 
-                    ],
-                    // FLOOR (Dark Block - Visual Only)
-                    ".": () => [ 
-                        rect(16, 16), color(30, 30, 40) 
-                    ],
-                    // STAIRS (Yellow Block)
-                    ">": () => [ 
-                        rect(16, 16), color(255, 255, 0), 
-                        area(), body({isStatic:true}), "stairs" 
-                    ],
-                    // HERO (Blue Block)
-                    "@": () => [ 
-                        rect(16, 16), color(0, 0, 255), 
-                        area({scale:0.8}), body(), anchor("center"), "player" 
-                    ],
-                    // NPC (Green Block)
-                    "N": () => [ 
-                        rect(16, 16), color(0, 255, 0), 
-                        area(), body({isStatic:true}), anchor("center"), "npc" 
-                    ],
-                    // ENEMY (Red Block)
-                    "1": () => [ 
-                        rect(16, 16), color(255, 0, 0), 
-                        area(), body({isStatic:true}), anchor("center"), "enemy", {id:"1"} 
-                    ],
-                }
-            });
-
-            const SPEED = 140;
-            
-            // Movement Logic
-            function move(x, y) {
-                const p = get("player")[0];
-                if(p) p.move(x, y);
+        // 3. DRAW LEVEL (Using Rectangles - No Images)
+        addLevel(LEVELS[0], {
+            tileWidth: 16,
+            tileHeight: 16,
+            tiles: {
+                "#": () => [ rect(16, 16), color(100, 100, 100), area(), body({isStatic:true}), "wall" ],
+                ".": () => [ rect(16, 16), color(30, 30, 40) ],
+                ">": () => [ rect(16, 16), color(255, 255, 0), area(), body({isStatic:true}), "stairs" ],
+                // HERO (Blue)
+                "@": () => [ rect(16, 16), color(0, 0, 255), area({scale:0.8}), body(), anchor("center"), "player" ],
+                "N": () => [ rect(16, 16), color(0, 255, 0), area(), body({isStatic:true}), anchor("center"), "npc" ],
+                "1": () => [ rect(16, 16), color(255, 0, 0), area(), body({isStatic:true}), anchor("center"), "enemy", {id:"1"} ],
             }
-
-            onKeyDown("left", () => move(-SPEED, 0));
-            onKeyDown("right", () => move(SPEED, 0));
-            onKeyDown("up", () => move(0, -SPEED));
-            onKeyDown("down", () => move(0, SPEED));
-
-            // Camera
-            onUpdate(() => {
-                const p = get("player")[0];
-                if(p) camPos(lerp(camPos(), p.pos, dt()*5));
-            });
-
-            // Interactions
-            onCollide("player", "stairs", () => debug.log("Win!"));
-            onCollide("player", "npc", () => openModal("Wizard", "Combine words with -ish!", false));
-            onCollide("player", "enemy", (p, e) => startBattle(e));
         });
 
-        // UI Logic
-        let currentEnemy = null;
-        const QUESTS = { "1": { word: "greenish", title: "Ghost", clue: "Sickly color..." } };
-
-        function startBattle(enemy) {
-            currentEnemy = enemy;
-            const data = QUESTS[enemy.id];
-            if(data) openModal(data.title, data.clue, true);
-        }
-
-        function openModal(header, text, isBattle) {
-            debug.paused = true;
-            document.getElementById("ui-layer").style.display = "block";
-            document.getElementById("ui-header").innerText = header;
-            document.getElementById("ui-text").innerText = text;
-            document.getElementById("battle-controls").style.display = isBattle ? "block" : "none";
-            document.getElementById("npc-controls").style.display = isBattle ? "none" : "block";
-            if(isBattle) setTimeout(() => document.getElementById("answer-input").focus(), 100);
-        }
-
-        function closeModal() {
-            document.getElementById("ui-layer").style.display = "none";
-            debug.paused = false;
-            document.querySelector("canvas").focus();
-        }
-
-        function checkAnswer() {
-            const input = document.getElementById("answer-input");
-            if (input.value.includes("ish")) {
-                if(currentEnemy) currentEnemy.destroy();
-                closeModal();
-                shake(5);
-            } else {
-                alert("Try typing 'greenish'");
+        // 4. MOVEMENT LOGIC
+        const SPEED = 140;
+        
+        function move(x, y, label) {
+            const p = get("player")[0];
+            if (p) {
+                p.move(x, y);
+                debugLabel.text = "Status: Moving " + label;
             }
         }
 
-        // Start
-        document.getElementById("start-overlay").addEventListener("click", () => {
-            document.getElementById("start-overlay").style.display = "none";
-            go("game", { levelIdx: 0 });
-            setTimeout(() => document.querySelector("canvas").focus(), 100);
+        // We listen for keys and update the text
+        onKeyDown("left", () => move(-SPEED, 0, "LEFT"));
+        onKeyDown("right", () => move(SPEED, 0, "RIGHT"));
+        onKeyDown("up", () => move(0, -SPEED, "UP"));
+        onKeyDown("down", () => move(0, SPEED, "DOWN"));
+
+        // Camera Follow
+        onUpdate(() => {
+            const p = get("player")[0];
+            if(p) camPos(lerp(camPos(), p.pos, dt()*5));
         });
 
-        document.getElementById("submit-btn").addEventListener("click", checkAnswer);
-        document.getElementById("close-btn").addEventListener("click", closeModal);
+        // 5. INTERACTIONS
+        onCollide("player", "enemy", (p, e) => startBattle(e));
+        onCollide("player", "npc", () => openModal("Wizard", "Use arrow keys to move!", false));
+    });
 
-    } catch (e) {
-        alert("Startup Error: " + e.message);
+    // --- UI FUNCTIONS ---
+    let currentEnemy = null;
+    const QUESTS = { "1": { word: "greenish", title: "Ghost", clue: "Sickly color..." } };
+
+    function startBattle(enemy) {
+        currentEnemy = enemy;
+        const data = QUESTS[enemy.id];
+        if(data) openModal(data.title, data.clue, true);
     }
+
+    function openModal(header, text, isBattle) {
+        debug.paused = true;
+        document.getElementById("ui-layer").style.display = "block";
+        document.getElementById("ui-header").innerText = header;
+        document.getElementById("ui-text").innerText = text;
+        document.getElementById("battle-controls").style.display = isBattle ? "block" : "none";
+        document.getElementById("npc-controls").style.display = isBattle ? "none" : "block";
+        if(isBattle) setTimeout(() => document.getElementById("answer-input").focus(), 100);
+    }
+
+    function closeModal() {
+        document.getElementById("ui-layer").style.display = "none";
+        debug.paused = false;
+        // CRITICAL: Refocus on canvas after closing modal
+        focusCanvas();
+    }
+
+    function checkAnswer() {
+        const input = document.getElementById("answer-input");
+        if (input.value.includes("ish")) {
+            if(currentEnemy) currentEnemy.destroy();
+            closeModal();
+            shake(5);
+        } else {
+            alert("Try typing 'greenish'");
+        }
+    }
+
+    // --- FOCUS HELPER ---
+    function focusCanvas() {
+        const c = document.querySelector("canvas");
+        if(c) {
+            c.setAttribute("tabindex", "0"); // Make it focusable
+            c.focus();
+            c.click(); // Simulation click to wake it up
+        }
+    }
+
+    // --- STARTUP HANDLER ---
+    document.getElementById("start-overlay").addEventListener("click", () => {
+        document.getElementById("start-overlay").style.display = "none";
+        
+        // Start Game
+        go("game", { levelIdx: 0 });
+
+        // FORCE FOCUS
+        setTimeout(focusCanvas, 100);
+    });
+
+    document.getElementById("submit-btn").addEventListener("click", checkAnswer);
+    document.getElementById("close-btn").addEventListener("click", closeModal);
+
     </script>
 </body>
 </html>
