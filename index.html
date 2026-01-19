@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Suffixia: Story Edition</title>
+    <title>Suffixia: Touch Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body { 
             margin: 0; 
@@ -10,6 +11,8 @@
             font-family: 'Verdana', sans-serif; 
             color: white; 
             user-select: none;
+            -webkit-user-select: none;
+            touch-action: none; /* Prevents zooming/scrolling on mobile */
         }
         
         canvas { 
@@ -21,14 +24,15 @@
         /* HUD */
         #hud {
             position: absolute; top: 10px; left: 10px;
-            background: rgba(0,0,0,0.85); padding: 12px 25px; border-radius: 12px;
+            background: rgba(0,0,0,0.85); padding: 10px 15px; border-radius: 12px;
             border: 2px solid #555; pointer-events: none;
-            display: flex; gap: 25px; font-size: 18px; font-weight: bold;
+            display: flex; gap: 15px; font-size: 16px; font-weight: bold;
             box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 10;
+            flex-wrap: wrap;
         }
-        .hud-item { display: flex; align-items: center; gap: 10px; }
+        .hud-item { display: flex; align-items: center; gap: 5px; }
         .hud-value { color: #a29bfe; }
-        #rank-display { color: #ffeaa7; text-transform: uppercase; font-size: 14px; letter-spacing: 1px; }
+        #rank-display { color: #ffeaa7; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
 
         /* START SCREEN */
         #start-screen {
@@ -49,51 +53,86 @@
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(25, 25, 35, 0.98); 
             color: #eee; 
-            padding: 40px; 
+            padding: 30px; 
             border: 4px solid #6c5ce7;
             border-radius: 20px;
             text-align: center; 
             display: none; 
-            width: 600px;
+            width: 80%; max-width: 500px;
             box-shadow: 0 0 100px rgba(108, 92, 231, 0.6);
             z-index: 100;
         }
 
-        h2#ui-title { margin-top: 0; color: #a29bfe; text-transform: uppercase; letter-spacing: 3px; border-bottom: 2px solid #444; padding-bottom: 15px; font-size: 28px;}
-        p#ui-text { font-size: 20px; line-height: 1.6; margin: 25px 0; min-height: 60px; }
+        h2#ui-title { margin-top: 0; color: #a29bfe; text-transform: uppercase; letter-spacing: 3px; border-bottom: 2px solid #444; padding-bottom: 15px; font-size: 24px;}
+        p#ui-text { font-size: 18px; line-height: 1.6; margin: 20px 0; min-height: 50px; }
 
         input { 
-            padding: 15px; font-size: 22px; text-align: center; width: 70%; margin-top: 15px;
+            padding: 15px; font-size: 22px; text-align: center; width: 80%; margin-top: 15px;
             background: #2d3436; border: 2px solid #636e72; color: white; border-radius: 10px; outline: none;
         }
         input:focus { border-color: #a29bfe; box-shadow: 0 0 10px #a29bfe; }
         
         button.action-btn { 
-            padding: 12px 30px; font-size: 18px; cursor: pointer; margin-top: 25px;
+            padding: 15px 30px; font-size: 18px; cursor: pointer; margin-top: 25px;
             background: #6c5ce7; color: white; border: none; border-radius: 8px; font-weight: bold;
-            transition: all 0.2s;
+            transition: all 0.2s; width: 100%;
         }
         button.action-btn:hover { background: #81ecec; color: black; }
+
+        /* MOBILE CONTROLS */
+        #mobile-controls {
+            position: absolute; bottom: 20px; left: 20px;
+            display: grid; 
+            grid-template-columns: 60px 60px 60px;
+            grid-template-rows: 60px 60px;
+            gap: 10px;
+            z-index: 50;
+        }
+        
+        .dpad-btn {
+            width: 60px; height: 60px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 10px;
+            color: white; font-size: 24px;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; user-select: none;
+            transition: background 0.1s;
+        }
+        .dpad-btn:active { background: rgba(108, 92, 231, 0.8); border-color: #a29bfe; }
+        
+        #btn-up { grid-column: 2; grid-row: 1; }
+        #btn-left { grid-column: 1; grid-row: 2; }
+        #btn-down { grid-column: 2; grid-row: 2; }
+        #btn-right { grid-column: 3; grid-row: 2; }
+
     </style>
 </head>
 <body>
 
     <div id="start-screen">
-        <h1 style="font-size: 70px; color: #a29bfe; margin-bottom: 10px; text-shadow: 0 0 30px #6c5ce7;">SUFFIXIA</h1>
-        <p style="color:#aaa; margin-bottom: 40px; font-size: 18px;">The Legend of the Word Warden</p>
-        <button id="start-btn" onclick="initGame()">BEGIN ADVENTURE</button>
+        <h1 style="font-size: 50px; color: #a29bfe; margin-bottom: 10px; text-shadow: 0 0 30px #6c5ce7;">SUFFIXIA</h1>
+        <p style="color:#aaa; margin-bottom: 40px; font-size: 16px;">The Legend of the Word Warden</p>
+        <button id="start-btn" onclick="initGame()">PLAY</button>
     </div>
     
     <div id="hud">
         <div class="hud-item">🏆 <span id="score-val" class="hud-value">0</span></div>
         <div class="hud-item">🔑 <span id="key-count" class="hud-value">0</span></div>
         <div class="hud-item">🧪 <span id="potion-status" class="hud-value">OFF</span></div>
-        <div class="hud-item" style="border-left: 1px solid #555; padding-left: 20px;">
-            RANK: <span id="rank-display">NOVICE</span>
+        <div class="hud-item" style="border-left: 1px solid #555; padding-left: 10px;">
+            <span id="rank-display">NOVICE</span>
         </div>
     </div>
 
     <canvas id="gameCanvas"></canvas>
+
+    <div id="mobile-controls">
+        <div class="dpad-btn" id="btn-up" onpointerdown="handleInput(0, -1)">▲</div>
+        <div class="dpad-btn" id="btn-left" onpointerdown="handleInput(-1, 0)">◀</div>
+        <div class="dpad-btn" id="btn-down" onpointerdown="handleInput(0, 1)">▼</div>
+        <div class="dpad-btn" id="btn-right" onpointerdown="handleInput(1, 0)">▶</div>
+    </div>
 
     <div id="ui-layer">
         <h2 id="ui-title">Quest</h2>
@@ -115,7 +154,7 @@
         const CANVAS = document.getElementById("gameCanvas");
         const CTX = CANVAS.getContext("2d");
 
-        // --- 2. AUDIO ENGINE (Safe Mode) ---
+        // --- 2. AUDIO ENGINE ---
         const Audio = {
             ctx: null,
             active: false,
@@ -134,7 +173,7 @@
                     const gain = this.ctx.createGain();
                     osc.type = type;
                     osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                    gain.gain.setValueAtTime(0.05, this.ctx.currentTime); // Lower volume
+                    gain.gain.setValueAtTime(0.05, this.ctx.currentTime); 
                     gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
@@ -146,9 +185,8 @@
             unlock: () => { Audio.playTone(200, 'sawtooth', 0.2); setTimeout(() => Audio.playTone(400, 'sawtooth', 0.3), 200); },
             magic: () => Audio.playTone(600, 'sine', 0.3),
             error: () => Audio.playTone(100, 'sawtooth', 0.3),
-            levelup: () => {
-                [440, 554, 659, 880].forEach((n, i) => setTimeout(() => Audio.playTone(n, 'square', 0.4), i * 100));
-            },
+            step: () => Audio.playTone(100, 'triangle', 0.05),
+            levelup: () => { [440, 554, 659, 880].forEach((n, i) => setTimeout(() => Audio.playTone(n, 'square', 0.4), i * 100)); },
             startBGM: function() {
                 if (!this.active || !this.ctx) return;
                 try {
@@ -195,11 +233,10 @@
             { a: "noun", q: "To make 'Foolish', do you add -ish to a Noun or Verb?" }
         ];
 
-        // --- 5. STORY & RANKS ---
         const STORY_TEXT = [
-            "Welcome, Word Warden. The Suffix Sorcerer has stolen the endings of our words! Without them, 'Greenish' is just 'Green', and 'Childish' is just a 'Child'. You must reclaim them!",
-            "You have entered the Whispering Halls. The enemies here are stronger. Beware of hidden traps in the floor!",
-            "The Throne Room. The Sorcerer waits behind the final door. Prepare your mind for the ultimate test!"
+            "Welcome, Word Warden. The Suffix Sorcerer has stolen the endings of our words! You must reclaim them!",
+            "You have entered the Whispering Halls. Beware of hidden traps!",
+            "The Throne Room. The Sorcerer waits behind the final door."
         ];
 
         const RANKS = [
@@ -210,7 +247,7 @@
             { score: 1200, title: "LEGEND" }
         ];
 
-        // --- 6. GAME STATE ---
+        // --- 5. GAME STATE ---
         let player = { x: 1, y: 1 };
         let inventory = { keys: 0, vision: false, score: 0 };
         let levelIdx = 0;
@@ -220,13 +257,10 @@
         let items = [];
         let moveTimer = 0;
 
-        // --- 7. LEVELS ---
+        // --- 6. LEVELS ---
         const LEVELS = [
-            // Level 1
             [ "####################", "#@.......E....K....#", "#.N...H............#", "#######D############", "#...........E......#", "#...P.......#......#", "#...#.......E......#", "#...#...E....>.....#", "#...#..............#", "####################" ],
-            // Level 2
             [ "#######################", "#@....#...D.......>...#", "#####.#.#######.#######", "#...#.#.#.....#.......#", "#...E.#.#..E..#...E...#", "#.....#.#.....#.......#", "#.#####.#######.#######", "#P...................K#", "#######################" ],
-            // Level 3
             [ "#######################", "#@................K...#", "#######.#######.#######", "#.....#.#.....#.#.....#", "#..E..#.#..$..#.#..E..#", "#.....#.#.....#.#.....#", "#.#####.###D###.#######", "#.........H...........#", "#######################" ]
         ];
 
@@ -249,7 +283,6 @@
             }
             if (idx > 0) Audio.levelup();
 
-            // Load Map
             const map = LEVELS[levelIdx];
             walls = [];
             items = [];
@@ -267,9 +300,7 @@
                     else if ("KDP>NS".includes(char)) items.push({ x, y, type: char, id: Math.random() });
                 }
             }
-            
             updateHUD();
-            // Show Story Popup
             setTimeout(() => openUI("CHAPTER " + (idx+1), STORY_TEXT[idx], false), 500);
         }
 
@@ -278,8 +309,6 @@
             document.getElementById("score-val").innerText = inventory.score;
             document.getElementById("potion-status").innerText = inventory.vision ? "ON" : "OFF";
             document.getElementById("potion-status").style.color = inventory.vision ? "#55efc4" : "#636e72";
-            
-            // Calculate Rank
             let currentRank = "NOVICE";
             for(let r of RANKS) {
                 if(inventory.score >= r.score) currentRank = r.title;
@@ -287,17 +316,11 @@
             document.getElementById("rank-display").innerText = currentRank;
         }
 
-        function addScore(points) {
-            inventory.score += points;
-            updateHUD();
-        }
+        function addScore(points) { inventory.score += points; updateHUD(); }
 
-        // --- 8. GAME LOOP ---
+        // --- 7. GAME LOOP ---
         function gameLoop() {
-            if(!isPaused) {
-                updateEnemies();
-                draw();
-            }
+            if(!isPaused) { updateEnemies(); draw(); }
             requestAnimationFrame(gameLoop);
         }
 
@@ -324,14 +347,12 @@
         function isPlayer(x, y) { return player.x === x && player.y === y; }
         function isItem(x, y) { return items.some(i => i.x === x && i.y === y); }
 
-        // --- 9. DRAWING ---
+        // --- 8. DRAWING ---
         function draw() {
             CTX.fillStyle = "#050505";
             CTX.fillRect(0, 0, CANVAS.width, CANVAS.height);
-
             let offsetX = (CANVAS.width / 2) - (player.x * TILE_SIZE) - (TILE_SIZE / 2);
             let offsetY = (CANVAS.height / 2) - (player.y * TILE_SIZE) - (TILE_SIZE / 2);
-
             CTX.save();
             CTX.translate(offsetX, offsetY);
 
@@ -361,95 +382,77 @@
             const px = x * TILE_SIZE;
             const py = (y * TILE_SIZE) + yOffset;
             const img = IMAGES[type];
-
             if (img && img.complete && img.naturalHeight !== 0) {
                 CTX.drawImage(img, px, py, TILE_SIZE, TILE_SIZE);
                 return;
             } 
-            
             if (type === "#") { CTX.fillStyle = "#444"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); return; }
             if (type === ".") { CTX.fillStyle = "#111"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); return; }
             
             CTX.font = (TILE_SIZE * 0.6) + "px Arial";
-            CTX.textAlign = "center";
-            CTX.textBaseline = "middle";
-            let cx = px + TILE_SIZE/2;
-            let cy = py + TILE_SIZE/2;
+            CTX.textAlign = "center"; CTX.textBaseline = "middle";
+            let cx = px + TILE_SIZE/2; let cy = py + TILE_SIZE/2;
 
-            if (type === "K") { CTX.fillText("🔑", cx, cy); }
+            if (type === "K") CTX.fillText("🔑", cx, cy);
             else if (type === "D") { CTX.fillStyle = "#e67e22"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); CTX.fillStyle="white"; CTX.fillText("🔒", cx, cy); }
-            else if (type === "P") { CTX.fillText("🧪", cx, cy); }
-            else if (type === "H") { CTX.fillText("⚠️", cx, cy); } 
+            else if (type === "P") CTX.fillText("🧪", cx, cy);
+            else if (type === "H") CTX.fillText("⚠️", cx, cy);
             else if (type === "@") { CTX.fillStyle = "#6c5ce7"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
             else if (type === "E") { CTX.fillStyle = "#d63031"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
             else if (type === ">") { CTX.fillStyle = "#ffeaa7"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
             else { CTX.fillStyle = "green"; CTX.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
         }
 
-        // --- 10. MOVEMENT ---
-        window.addEventListener("keydown", (e) => {
+        // --- 9. MOVEMENT ---
+        function handleInput(dx, dy) {
             if (isPaused) return;
-            let dx = 0, dy = 0;
-            if (e.key === "ArrowLeft") dx = -1;
-            if (e.key === "ArrowRight") dx = 1;
-            if (e.key === "ArrowUp") dy = -1;
-            if (e.key === "ArrowDown") dy = 1;
-
             if (dx !== 0 || dy !== 0) {
                 let nx = player.x + dx;
                 let ny = player.y + dy;
-                if (isWall(nx, ny)) return;
+                if (isWall(nx, ny)) { Audio.error(); return; }
 
                 let item = items.find(i => i.x === nx && i.y === ny);
                 if (item) {
-                    if (item.type === "N") { openUI("Wizard", "Greetings! I am the keeper of these halls.", false); } 
+                    if (item.type === "N") { openUI("Wizard", "Greetings!", false); } 
                     else if (item.type === "K") {
-                        inventory.keys++;
-                        Audio.pickup();
-                        items = items.filter(i => i !== item); 
-                        addScore(20);
-                        player.x = nx; player.y = ny;
+                        inventory.keys++; Audio.pickup(); items = items.filter(i => i !== item); addScore(20); player.x = nx; player.y = ny;
                     }
                     else if (item.type === "P") {
-                        inventory.vision = true;
-                        updateHUD();
-                        Audio.pickup();
-                        openUI("Potion Drinker", "You can now see hidden traps!", false);
-                        items = items.filter(i => i !== item); 
-                        addScore(20);
-                        player.x = nx; player.y = ny;
+                        inventory.vision = true; updateHUD(); Audio.pickup(); openUI("Potion Drinker", "Hidden traps revealed!", false); items = items.filter(i => i !== item); addScore(20); player.x = nx; player.y = ny;
                     }
                     else if (item.type === "D") {
                         if (inventory.keys > 0) {
-                            inventory.keys--;
-                            Audio.unlock();
-                            items = items.filter(i => i !== item); 
-                            openUI("Unlocked!", "You used a key.", false);
-                            updateHUD();
+                            inventory.keys--; Audio.unlock(); items = items.filter(i => i !== item); openUI("Unlocked!", "Door opened.", false); updateHUD();
                         } else {
                             openUI("Locked", "You need a key 🔑.", false);
                         }
                     }
                     else if (item.type === "E" || item.type === "H") {
-                        currentEnemy = item;
-                        openUI("BATTLE", item.quest.q, true);
+                        currentEnemy = item; openUI("BATTLE", item.quest.q, true);
                     }
                     else if (item.type === "$") {
-                        currentEnemy = item;
-                        openUI("BOSS BATTLE", item.quest.q, true);
+                        currentEnemy = item; openUI("BOSS BATTLE", item.quest.q, true);
                     } 
                     else if (item.type === ">") {
-                        addScore(100);
-                        loadLevel(levelIdx + 1);
+                        addScore(100); loadLevel(levelIdx + 1);
                     }
                 } else {
-                    player.x = nx;
-                    player.y = ny;
+                    player.x = nx; player.y = ny;
+                    Audio.step();
                 }
             }
+        }
+
+        window.addEventListener("keydown", (e) => {
+            let dx = 0, dy = 0;
+            if (e.key === "ArrowLeft") dx = -1;
+            if (e.key === "ArrowRight") dx = 1;
+            if (e.key === "ArrowUp") dy = -1;
+            if (e.key === "ArrowDown") dy = 1;
+            handleInput(dx, dy);
         });
 
-        // --- 11. UI SYSTEM ---
+        // --- 10. UI SYSTEM ---
         const UI = document.getElementById("ui-layer");
         const INPUT = document.getElementById("answer");
 
