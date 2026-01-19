@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Suffixia: Final Cut</title>
+    <title>Suffixia: Safe Mode</title>
     <style>
         body { 
             margin: 0; 
@@ -15,6 +15,7 @@
         canvas { 
             display: block; 
             background: #000; 
+            margin: 0 auto;
         }
         
         /* HUD */
@@ -27,19 +28,19 @@
         }
         .hud-item { display: flex; align-items: center; gap: 8px; }
 
-        /* START SCREEN (Required for Audio) */
+        /* START SCREEN */
         #start-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 200;
+            background: rgba(10, 10, 15, 0.95); z-index: 200;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         #start-btn {
             padding: 20px 40px; font-size: 24px; font-weight: bold; 
             background: #6c5ce7; color: white; border: none; border-radius: 10px;
             cursor: pointer; box-shadow: 0 0 20px #6c5ce7;
-            animation: pulse 2s infinite;
+            margin-bottom: 20px;
         }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        #start-btn:hover { background: #81ecec; color: black; }
 
         /* QUEST POPUP */
         #ui-layer {
@@ -71,14 +72,23 @@
             transition: all 0.2s;
         }
         button:hover { background: #81ecec; color: black; transform: scale(1.05); }
+
+        /* DEBUG CONSOLE (Hidden unless error) */
+        #error-log {
+            display: none; position: absolute; bottom: 0; left: 0; width: 100%;
+            background: red; color: white; padding: 10px; font-family: monospace;
+            z-index: 9999;
+        }
     </style>
 </head>
 <body>
 
+    <div id="error-log"></div>
+
     <div id="start-screen">
-        <h1>SUFFIXIA</h1>
-        <button id="start-btn" onclick="startGame()">CLICK TO START GAME & MUSIC</button>
-        <p style="color:#aaa; margin-top:20px;">(Headphones Recommended)</p>
+        <h1 style="font-size: 60px; color: #a29bfe; margin-bottom: 40px; text-shadow: 0 0 20px #6c5ce7;">SUFFIXIA</h1>
+        <button id="start-btn" onclick="initGame()">PLAY GAME</button>
+        <p style="color:#aaa;">(Click to Start Audio & Graphics)</p>
     </div>
     
     <div id="hud">
@@ -108,90 +118,61 @@
         const CANVAS = document.getElementById("gameCanvas");
         const CTX = CANVAS.getContext("2d");
 
-        // --- 2. SOUND ENGINE (Polished) ---
+        // --- 2. AUDIO ENGINE (SAFE MODE) ---
         const Audio = {
             ctx: null,
-            bgmNodes: [],
+            active: false,
             
             init: function() {
-                if (!this.ctx) {
+                try {
                     const AudioContext = window.AudioContext || window.webkitAudioContext;
                     this.ctx = new AudioContext();
+                    this.active = true;
+                    this.startBGM();
+                } catch (e) {
+                    console.warn("Audio disabled: " + e.message);
+                    this.active = false;
                 }
-                if (this.ctx.state === 'suspended') {
-                    this.ctx.resume();
-                }
-                this.startBGM();
             },
 
-            playTone: function(freq, type, duration, vol=0.1) {
-                if (!this.ctx) return;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = type;
-                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start();
-                osc.stop(this.ctx.currentTime + duration);
+            playTone: function(freq, type, duration) {
+                if (!this.active || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
             },
 
-            step: () => Audio.playTone(100, 'triangle', 0.05, 0.05),
-            pickup: () => {
-                Audio.playTone(600, 'sine', 0.1, 0.1);
-                setTimeout(() => Audio.playTone(1200, 'sine', 0.3, 0.1), 100);
-            },
-            unlock: () => {
-                Audio.playTone(200, 'sawtooth', 0.2, 0.1);
-                setTimeout(() => Audio.playTone(400, 'sawtooth', 0.4, 0.1), 200);
-            },
-            magic: () => {
-                if (!Audio.ctx) return;
-                const osc = Audio.ctx.createOscillator();
-                const gain = Audio.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(400, Audio.ctx.currentTime);
-                osc.frequency.linearRampToValueAtTime(1200, Audio.ctx.currentTime + 0.3);
-                gain.gain.setValueAtTime(0.1, Audio.ctx.currentTime);
-                gain.gain.linearRampToValueAtTime(0, Audio.ctx.currentTime + 0.3);
-                osc.connect(gain);
-                gain.connect(Audio.ctx.destination);
-                osc.start();
-                osc.stop(Audio.ctx.currentTime + 0.3);
-            },
-            error: () => Audio.playTone(100, 'sawtooth', 0.4, 0.1),
+            step: () => Audio.playTone(100, 'triangle', 0.05),
+            pickup: () => { Audio.playTone(600, 'sine', 0.1); setTimeout(() => Audio.playTone(1200, 'sine', 0.2), 100); },
+            unlock: () => { Audio.playTone(200, 'sawtooth', 0.2); setTimeout(() => Audio.playTone(400, 'sawtooth', 0.3), 200); },
+            magic: () => Audio.playTone(600, 'sine', 0.3),
+            error: () => Audio.playTone(100, 'sawtooth', 0.3),
             win: () => {
-                let notes = [523, 659, 784, 1046]; 
-                notes.forEach((n, i) => setTimeout(() => Audio.playTone(n, 'square', 0.5, 0.1), i * 150));
+                if(!Audio.active) return;
+                [523, 659, 784, 1046].forEach((n, i) => setTimeout(() => Audio.playTone(n, 'square', 0.4), i * 150));
             },
 
             startBGM: function() {
-                // Prevent double playing
-                if (this.bgmNodes.length > 0) return;
-                
-                // 1. Low Drone
-                const osc1 = this.ctx.createOscillator();
-                const g1 = this.ctx.createGain();
-                osc1.frequency.value = 55; // A1
-                osc1.type = 'triangle';
-                g1.gain.value = 0.15; // Increased volume
-                osc1.connect(g1);
-                g1.connect(this.ctx.destination);
-                osc1.start();
-
-                // 2. Harmony (Fifth)
-                const osc2 = this.ctx.createOscillator();
-                const g2 = this.ctx.createGain();
-                osc2.frequency.value = 82.41; // E2
-                osc2.type = 'sine';
-                g2.gain.value = 0.1;
-                osc2.connect(g2);
-                g2.connect(this.ctx.destination);
-                osc2.start();
-
-                this.bgmNodes.push(osc1, osc2);
+                if (!this.active || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.frequency.value = 55; // Deep Drone
+                    osc.type = 'triangle';
+                    gain.gain.value = 0.1; 
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                } catch(e) {}
             }
         };
 
@@ -214,7 +195,7 @@
                 const img = new Image();
                 img.src = ASSETS[key];
                 img.onload = () => { assetsLoaded++; };
-                img.onerror = () => { assetsLoaded++; }; // Fail silently, use fallback
+                img.onerror = () => { assetsLoaded++; }; 
                 IMAGES[key] = img;
             }
         }
@@ -260,15 +241,14 @@
         let items = [];
         let moveTimer = 0;
 
-        // --- 6. LEVELS (REDESIGNED FOR MANDATORY KEYS) ---
+        // --- 6. LEVELS ---
         const LEVELS = [
-            // LEVEL 1: Tutorial
-            // Simple: Get Key -> Open Door -> Exit
+            // LEVEL 1: Start
             [
                 "####################",
-                "#@.......E....K....#", // Key in open
+                "#@.......E....K....#", 
                 "#.N................#", 
-                "#######D############", // Door blocks exit
+                "#######D############", 
                 "#...........E......#", 
                 "#...P.......#......#", 
                 "#...#.......E......#", 
@@ -276,45 +256,59 @@
                 "#...#..............#",
                 "####################"
             ],
-            // LEVEL 2: The Loop
-            // Start Top Left. Key is bottom Right. Door is Top Middle.
-            // You MUST go all the way around to get the key, then come back.
+            // LEVEL 2: Loop
             [
                 "#######################",
-                "#@....#...D.......>...#", // Door 'D' blocks exit '>'
+                "#@....#...D.......>...#",
                 "#####.#.#######.#######",
                 "#...#.#.#.....#.......#",
                 "#...E.#.#..E..#...E...#",
                 "#.....#.#.....#.......#",
                 "#.#####.#######.#######",
-                "#P...................K#", // Key 'K' is far away
+                "#P...................K#",
                 "#######################"
             ],
-            // LEVEL 3: The Throne Room
-            // Start Left. Key Top Right. Boss locked in center.
+            // LEVEL 3: Boss
             [
                 "#######################",
-                "#@..............E.....#",
+                "#@................K...#",
                 "#######.#######.#######",
-                "#.....#.#.....#.#K....#", // Key is deep in
-                "#.....#.#.$...#.#.....#",
                 "#.....#.#.....#.#.....#",
-                "#.#####.###D###.#######", // Door protects Boss '$'
+                "#..E..#.#..$..#.#..E..#",
+                "#.....#.#.....#.#.....#",
+                "#.#####.###D###.#######",
                 "#.........H...........#",
                 "#######################"
             ]
         ];
 
+        function initGame() {
+            // 1. Hide Start Screen
+            document.getElementById("start-screen").style.display = "none";
+            
+            // 2. Try Audio
+            Audio.init();
+
+            // 3. Resize Canvas
+            resize();
+            
+            // 4. Load Assets & Level
+            preloadImages();
+            loadLevel(0);
+            
+            // 5. Start Loop
+            requestAnimationFrame(gameLoop);
+        }
+
         function loadLevel(idx) {
             levelIdx = idx;
             if (levelIdx >= LEVELS.length) {
                 Audio.win();
-                alert("CONGRATULATIONS! YOU HAVE CONQUERED SUFFIXIA!");
+                alert("YOU HAVE CONQUERED SUFFIXIA!");
                 location.reload(); 
                 return;
-            } else if (idx > 0) {
-                Audio.win(); // Level up sound
             }
+            if (idx > 0) Audio.win();
 
             const map = LEVELS[levelIdx];
             walls = [];
@@ -382,10 +376,6 @@
 
         // --- 8. DRAWING ---
         function draw() {
-            CANVAS.width = window.innerWidth;
-            CANVAS.height = window.innerHeight;
-            CTX.imageSmoothingEnabled = false;
-
             CTX.fillStyle = "#050505";
             CTX.fillRect(0, 0, CANVAS.width, CANVAS.height);
 
@@ -395,7 +385,6 @@
             CTX.save();
             CTX.translate(offsetX, offsetY);
 
-            // Draw Map
             const map = LEVELS[levelIdx];
             for (let y = 0; y < map.length; y++) {
                 for (let x = 0; x < map[y].length; x++) {
@@ -405,7 +394,6 @@
                 }
             }
 
-            // Draw Items
             const bob = Math.sin(Date.now() / 200) * 5;
             items.forEach(item => {
                 if (item.type === "H" && !inventory.vision) {
@@ -416,9 +404,7 @@
                 }
             });
 
-            // Draw Player
             drawTile(player.x, player.y, "@", bob);
-
             CTX.restore();
         }
 
@@ -530,13 +516,6 @@
         const UI = document.getElementById("ui-layer");
         const INPUT = document.getElementById("answer");
 
-        function startGame() {
-            document.getElementById("start-screen").style.display = "none";
-            Audio.init();
-            preloadImages();
-            loadLevel(0);
-        }
-
         function openUI(title, text, isBattle) {
             isPaused = true;
             UI.style.display = "block";
@@ -567,15 +546,16 @@
             if (attempt === correct) {
                 Audio.magic();
                 
-                // IF BOSS DEFEATED -> GAME OVER/WIN
+                // BOSS VICTORY CHECK
                 if (currentEnemy.type === "$") {
                     items = items.filter(i => i !== currentEnemy);
                     closeUI();
-                    Audio.win();
-                    setTimeout(() => alert("BOSS DEFEATED! YOU WIN!"), 500);
-                    // Force level increment for safety
-                    levelIdx++; 
-                    if (levelIdx >= LEVELS.length) location.reload();
+                    setTimeout(() => {
+                        Audio.win();
+                        alert("BOSS DEFEATED! YOU WIN!");
+                        levelIdx = 0;
+                        location.reload();
+                    }, 500);
                     return;
                 }
 
@@ -598,6 +578,13 @@
         }
         window.addEventListener('resize', resize);
         window.closeUI = closeUI;
+
+        // Crash Reporter
+        window.onerror = function(message, source, lineno) {
+            const el = document.getElementById("error-log");
+            el.style.display = "block";
+            el.innerHTML += `<div>Error: ${message} (Line ${lineno})</div>`;
+        };
 
     </script>
 </body>
