@@ -2,11 +2,11 @@
 <html>
 <head>
     <title>Suffixia: Crystal Clear Edition</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <style>
         body { 
             margin: 0; 
-            background: #222; /* Lighter background for better contrast outside map */
+            background: #222; 
             overflow: hidden; 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             color: white; 
@@ -19,10 +19,9 @@
             display: block; 
             background: #111; 
             margin: 0 auto;
-            image-rendering: pixelated; /* CRISP PIXELS */
+            image-rendering: pixelated;
         }
         
-        /* HUD */
         #hud {
             position: absolute; top: 15px; left: 15px;
             background: rgba(20, 20, 30, 0.85); 
@@ -35,7 +34,6 @@
         .hud-item { display: flex; align-items: center; gap: 8px; text-shadow: 1px 1px 0 #000; }
         .hud-value { color: #55efc4; }
 
-        /* START SCREEN */
         #start-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(10, 10, 15, 0.98); z-index: 200;
@@ -50,7 +48,6 @@
         }
         #start-btn:hover { transform: scale(1.05); }
 
-        /* UI POPUP */
         #ui-layer {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(15, 15, 20, 0.98); 
@@ -81,7 +78,6 @@
         }
         button.action-btn:hover { background: #81ecec; color: #2d3436; }
 
-        /* CONTROLS */
         #mobile-controls {
             position: absolute; bottom: 30px; left: 30px;
             display: grid; 
@@ -144,12 +140,10 @@
     </div>
 
     <script>
-        // --- 1. BIGGER TILES ---
-        const TILE_SIZE = 80; // Large, clear tiles
+        const TILE_SIZE = 80; 
         const CANVAS = document.getElementById("gameCanvas");
         const CTX = CANVAS.getContext("2d");
 
-        // --- PARTICLE SYSTEM ---
         let particles = [];
         function createParticles(x, y, color, count=10) {
             for(let i=0; i<count; i++) {
@@ -174,7 +168,6 @@
             });
         }
 
-        // --- AUDIO ---
         const Audio = {
             ctx: null, active: false,
             init: function() {
@@ -353,7 +346,7 @@
             let shakeX = shake > 0 ? (Math.random() - 0.5) * 10 : 0;
             let shakeY = shake > 0 ? (Math.random() - 0.5) * 10 : 0;
 
-            CTX.fillStyle = "#111"; // Bright background
+            CTX.fillStyle = "#111"; 
             CTX.fillRect(0, 0, CANVAS.width, CANVAS.height);
             let offsetX = (CANVAS.width / 2) - (player.x * TILE_SIZE) - (TILE_SIZE / 2) + shakeX;
             let offsetY = (CANVAS.height / 2) - (player.y * TILE_SIZE) - (TILE_SIZE / 2) + shakeY;
@@ -365,17 +358,15 @@
             for (let y = 0; y < map.length; y++) {
                 for (let x = 0; x < map[y].length; x++) {
                     let char = map[y][x];
-                    // Floor (Checkerboard)
                     if ((x+y)%2 === 0) CTX.fillStyle = "#222"; else CTX.fillStyle = "#2a2a2a";
                     CTX.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
-                    
                     if (char === "#") drawTile(x, y, "#", 0);
                 }
             }
 
             const bob = Math.sin(Date.now() / 200) * 5;
             items.forEach(item => {
-                if (item.type === "H" && !inventory.vision) { /* Invisible */ } 
+                if (item.type === "H" && !inventory.vision) {} 
                 else {
                     let yOffset = (item.type === "E" || item.type === "N" || item.type === "$") ? bob : 0;
                     drawTile(item.x, item.y, item.type, yOffset);
@@ -384,8 +375,6 @@
 
             drawTile(player.x, player.y, "@", bob);
             drawParticles(CTX, 0, 0); 
-
-            // NO LIGHTING OVERLAY - FULL BRIGHTNESS
             CTX.restore();
         }
 
@@ -519,10 +508,17 @@
 
         INPUT.addEventListener("keypress", (e) => { if (e.key === "Enter") checkAnswer(); });
         
+        // FIXED RESIZE LOGIC
+        let lastW = 0, lastH = 0;
         function resize() { 
-            CANVAS.width = window.innerWidth; 
-            CANVAS.height = window.innerHeight; 
-            CTX.imageSmoothingEnabled = false; // VITAL FOR CRISP PIXELS
+            // Only re-draw and re-size if the width/height actually changes significantly (prevents mobile zoom flicker)
+            if (Math.abs(window.innerWidth - lastW) < 5 && Math.abs(window.innerHeight - lastH) < 5) return;
+            lastW = window.innerWidth;
+            lastH = window.innerHeight;
+            
+            CANVAS.width = lastW; 
+            CANVAS.height = lastH; 
+            CTX.imageSmoothingEnabled = false;
             if(assetsLoaded === totalAssets) draw(); 
         }
         window.addEventListener('resize', resize);
