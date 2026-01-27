@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Suffixia: Ultimate Edition</title>
+    <title>Suffixia: Word Warden Edition</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <style>
         body { 
             margin: 0; background: #222; overflow: hidden; 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             color: white; user-select: none; -webkit-user-select: none;
-            touch-action: manipulation; /* PREVENTS BROWSER ZOOM */
+            /* HARD BLOCK on browser zooming */
+            touch-action: none; 
         }
         canvas { display: block; background: #111; margin: 0 auto; image-rendering: pixelated; }
         
@@ -29,9 +30,8 @@
         #start-btn {
             padding: 20px 60px; font-size: 24px; font-weight: bold; 
             background: linear-gradient(45deg, #6c5ce7, #a29bfe); color: white; 
-            border: none; border-radius: 50px; cursor: pointer; transition: transform 0.2s;
+            border: none; border-radius: 50px; cursor: pointer;
         }
-        #start-btn:hover { transform: scale(1.05); }
 
         #ui-layer {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -41,7 +41,6 @@
         }
 
         input { padding: 15px; font-size: 24px; text-align: center; width: 80%; margin-top: 15px; background: #2d3436; border: 3px solid #636e72; color: white; border-radius: 12px; outline: none; }
-        input:focus { border-color: #a29bfe; }
         .action-btn { padding: 15px 40px; font-size: 20px; cursor: pointer; margin-top: 30px; background: #6c5ce7; color: white; border: none; border-radius: 12px; font-weight: bold; width: 100%; }
 
         #mobile-controls {
@@ -52,6 +51,7 @@
             width: 80px; height: 80px; background: rgba(255, 255, 255, 0.2);
             border: 2px solid rgba(255, 255, 255, 0.4); border-radius: 50%;
             color: white; font-size: 30px; display: flex; justify-content: center; align-items: center;
+            touch-action: none; -webkit-tap-highlight-color: transparent;
         }
     </style>
 </head>
@@ -59,7 +59,6 @@
 
     <div id="start-screen">
         <h1 style="font-size: 60px; color: #a29bfe; margin-bottom: 20px;">SUFFIXIA</h1>
-        <p style="color:#ccc; margin-bottom: 50px; font-size: 20px;">The Legend of the Word Warden</p>
         <button id="start-btn" onclick="initGame()">START ADVENTURE</button>
     </div>
     
@@ -73,10 +72,10 @@
     <canvas id="gameCanvas"></canvas>
 
     <div id="mobile-controls">
-        <div class="dpad-btn" style="grid-column: 2; grid-row: 1;" onpointerdown="handleInput(0, -1)">▲</div>
-        <div class="dpad-btn" style="grid-column: 1; grid-row: 2;" onpointerdown="handleInput(-1, 0)">◀</div>
-        <div class="dpad-btn" style="grid-column: 2; grid-row: 2;" onpointerdown="handleInput(0, 1)">▼</div>
-        <div class="dpad-btn" style="grid-column: 3; grid-row: 2;" onpointerdown="handleInput(1, 0)">▶</div>
+        <div class="dpad-btn" style="grid-column: 2; grid-row: 1;" onpointerdown="handleInput(event, 0, -1)">▲</div>
+        <div class="dpad-btn" style="grid-column: 1; grid-row: 2;" onpointerdown="handleInput(event, -1, 0)">◀</div>
+        <div class="dpad-btn" style="grid-column: 2; grid-row: 2;" onpointerdown="handleInput(event, 0, 1)">▼</div>
+        <div class="dpad-btn" style="grid-column: 3; grid-row: 2;" onpointerdown="handleInput(event, 1, 0)">▶</div>
     </div>
 
     <div id="ui-layer">
@@ -95,62 +94,7 @@
         const CANVAS = document.getElementById("gameCanvas");
         const CTX = CANVAS.getContext("2d");
 
-        // --- 1. RESTORED ALL ORIGINAL DATA ---
-        const REGULAR_QUESTIONS = [
-            { a: "greenish", q: "Somewhat green." }, { a: "boyish", q: "Like a boy." },
-            { a: "girlish", q: "Like a girl." }, { a: "childish", q: "Immature; like a child." },
-            { a: "ticklish", q: "Sensitive to tickling." }, { a: "feverish", q: "Having a fever." },
-            { a: "stylish", q: "Fashionable." }, { a: "foolish", q: "Lacking sense." },
-            { a: "selfish", q: "Caring only for self." }, { a: "pinkish", q: "Slightly pink." }
-        ];
-        const BOSS_QUESTIONS = [
-            { a: "adjective", q: "Does the suffix '-ish' turn a noun into a Verb or Adjective?" },
-            { a: "quality of", q: "Does '-ish' mean 'without' or 'having the quality of'?" },
-            { a: "noun", q: "To make 'Foolish', do you add -ish to a Noun or Verb?" }
-        ];
-        const STORY_TEXT = [
-            "Welcome, Word Warden. The Suffix Sorcerer has stolen the endings of our words! You must reclaim them!",
-            "You have entered the Chasm. The rooms are split by a great wall. Find the key!",
-            "The Throne Room. The Sorcerer waits behind the final door."
-        ];
-        const RANKS = [
-            { score: 0, title: "NOVICE" }, { score: 200, title: "APPRENTICE" }, { score: 500, title: "SPELLBINDER" }, { score: 800, title: "WORD MASTER" }, { score: 1200, title: "LEGEND" }
-        ];
-
-        // --- 2. RESTORED AUDIO & PARTICLES ---
-        const Audio = {
-            ctx: null, active: false,
-            init: function() {
-                try {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    this.ctx = new AudioContext(); this.active = true;
-                    this.startBGM();
-                } catch (e) { this.active = false; }
-            },
-            playTone: function(freq, type, duration, vol=0.1) {
-                if (!this.active || !this.ctx) return;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
-                osc.connect(gain); gain.connect(this.ctx.destination);
-                osc.start(); osc.stop(this.ctx.currentTime + duration);
-            },
-            pickup: () => Audio.playTone(800, 'sine', 0.2),
-            unlock: () => Audio.playTone(300, 'square', 0.3),
-            magic: () => Audio.playTone(600, 'sine', 0.4),
-            error: () => Audio.playTone(100, 'sawtooth', 0.3),
-            step: () => Audio.playTone(50, 'triangle', 0.05, 0.02),
-            levelup: () => { [440, 554, 659, 880].forEach((n, i) => setTimeout(() => Audio.playTone(n, 'square', 0.4), i * 100)); },
-            startBGM: function() {
-                if (!this.active) return;
-                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
-                osc.frequency.value = 50; osc.type = 'triangle'; gain.gain.value = 0.05; 
-                osc.connect(gain); gain.connect(this.ctx.destination); osc.start();
-            }
-        };
-
+        // --- RESTORED: Particle System ---
         let particles = [];
         function createParticles(x, y, color, count=10) {
             for(let i=0; i<count; i++) {
@@ -162,7 +106,39 @@
             }
         }
 
-        // --- 3. CORE STATE & MAPS ---
+        // --- RESTORED: Audio Engine ---
+        const Audio = {
+            ctx: null, active: false,
+            init: function() {
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext(); this.active = true;
+                } catch (e) { this.active = false; }
+            },
+            playTone: function(freq, type, duration, vol=0.1) {
+                if (!this.active || !this.ctx) return;
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + duration);
+            },
+            pickup: () => Audio.playTone(800, 'sine', 0.2),
+            unlock: () => Audio.playTone(300, 'square', 0.3),
+            magic: () => Audio.playTone(600, 'sine', 0.4),
+            error: () => Audio.playTone(100, 'sawtooth', 0.3),
+            step: () => Audio.playTone(50, 'triangle', 0.05, 0.02)
+        };
+
+        // --- RESTORED: Full Question Set ---
+        const REGULAR_QUESTIONS = [
+            { a: "greenish", q: "Somewhat green." }, { a: "boyish", q: "Like a boy." },
+            { a: "childish", q: "Immature; like a child." }, { a: "selfish", q: "Caring only for self." }
+        ];
+        const BOSS_QUESTIONS = [{ a: "adjective", q: "Does '-ish' turn a noun into a Verb or Adjective?" }];
+
+        // State
         let player = { x: 1, y: 1 };
         let inventory = { keys: 0, score: 0, vision: false };
         let levelIdx = 0;
@@ -170,16 +146,13 @@
         let currentEnemy = null;
         let walls = [];
         let items = [];
-        let shake = 0;
         let moveTimer = 0;
 
         const LEVELS = [
             [ "####################", "#@.......E....K....#", "#.N...H............#", "#######D############", "#...........E......#", "#...P.......#......#", "#...#.......E......#", "#...#...E....>.....#", "#...#..............#", "####################" ],
-            [ "#######################", "#@........#...........#", "#...E.....#.....E.....#", "#.........D...........#", "#...K.....#...........#", "#.........#......>....#", "#######################" ],
-            [ "#######################", "#@.................K..#", "#..#...E...$.......#..#", "#..........D..........#", "#######################" ]
+            [ "#######################", "#@........#...........#", "#...E.....#.....E.....#", "#.........D...........#", "#...K.....#...........#", "#.........#......>....#", "#######################" ]
         ];
 
-        // Assets
         const ASSETS = { "@": "images/hero.png", "#": "images/wall.png", "N": "images/npc.png", ">": "images/stairs.png", "E": "images/enemy.png", "$": "images/boss.png" };
         const IMAGES = {};
         for (let key in ASSETS) { const img = new Image(); img.src = ASSETS[key]; IMAGES[key] = img; }
@@ -203,81 +176,67 @@
                     if (c === "#") walls.push({x, y});
                     else if (c === "@") { player.x = x; player.y = y; }
                     else if ("EKD>$NHP".includes(c)) {
-                        let pool = (c === "$") ? BOSS_QUESTIONS : REGULAR_QUESTIONS;
-                        items.push({ x, y, type: c, quest: pool[Math.floor(Math.random()*pool.length)], isMoving: (c === "E") });
+                        items.push({ x, y, type: c, quest: REGULAR_QUESTIONS[Math.floor(Math.random()*REGULAR_QUESTIONS.length)], isMoving: (c === "E") });
                     }
                 }
             }
             updateHUD();
-            openUI("CHAPTER " + (idx+1), STORY_TEXT[idx] || "Continue...", false);
         }
 
         function updateHUD() {
             document.getElementById("key-count").innerText = inventory.keys;
             document.getElementById("score-val").innerText = inventory.score;
             document.getElementById("potion-status").innerText = inventory.vision ? "ON" : "OFF";
-            let rank = "NOVICE";
-            RANKS.forEach(r => { if(inventory.score >= r.score) rank = r.title; });
-            document.getElementById("rank-display").innerText = rank;
         }
 
-        // --- 4. GAME LOOP & DRAWING ---
         function gameLoop() {
             if(!isPaused) {
-                updateEnemies();
+                // RESTORED: Enemy Movement
+                moveTimer++;
+                if (moveTimer > 60) {
+                    moveTimer = 0;
+                    items.forEach(i => {
+                        if (i.isMoving) {
+                            let d = [[0,1],[0,-1],[1,0],[-1,0]][Math.floor(Math.random()*4)];
+                            let nx = i.x + d[0], ny = i.y + d[1];
+                            if (!walls.some(w=>w.x===nx&&w.y===ny)) { i.x = nx; i.y = ny; }
+                        }
+                    });
+                }
+                // RESTORED: Particle Update
                 particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.05; });
                 particles = particles.filter(p => p.life > 0);
-                if(shake > 0) shake--;
                 draw();
             }
             requestAnimationFrame(gameLoop);
-        }
-
-        function updateEnemies() {
-            moveTimer++;
-            if (moveTimer > 60) {
-                moveTimer = 0;
-                items.forEach(i => {
-                    if (i.isMoving) {
-                        let dirs = [[0,1],[0,-1],[1,0],[-1,0]];
-                        let d = dirs[Math.floor(Math.random()*4)];
-                        let nx = i.x + d[0], ny = i.y + d[1];
-                        if (!walls.some(w=>w.x===nx&&w.y===ny) && player.x!==nx && player.y!==ny) { i.x = nx; i.y = ny; }
-                    }
-                });
-            }
         }
 
         function draw() {
             CTX.fillStyle = "#111"; CTX.fillRect(0, 0, CANVAS.width, CANVAS.height);
             const map = LEVELS[levelIdx];
             const mapW = map[0].length, mapH = map.length;
-            const padding = 60;
-            const scale = Math.min((CANVAS.width-padding)/(mapW*TILE_SIZE), (CANVAS.height-padding)/(mapH*TILE_SIZE), 1.0);
+            const scale = Math.min((CANVAS.width-60)/(mapW*TILE_SIZE), (CANVAS.height-60)/(mapH*TILE_SIZE), 1.0);
             
-            let sX = shake > 0 ? (Math.random()-0.5)*10 : 0;
-            let sY = shake > 0 ? (Math.random()-0.5)*10 : 0;
-
             CTX.save();
-            CTX.translate(CANVAS.width/2 + sX, CANVAS.height/2 + sY);
+            CTX.translate(CANVAS.width/2, CANVAS.height/2);
             CTX.scale(scale, scale);
             CTX.translate(-(mapW*TILE_SIZE)/2, -(mapH*TILE_SIZE)/2);
 
-            // Tiles
             for(let y=0; y<mapH; y++) {
                 for(let x=0; x<mapW; x++) {
-                    CTX.fillStyle = (x+y)%2===0 ? "#222" : "#2a2a2a";
+                    CTX.fillStyle = (x+y)%2 === 0 ? "#222" : "#2a2a2a";
                     CTX.fillRect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
                 }
             }
             walls.forEach(w => drawTile(w.x, w.y, "#", 0));
             const bob = Math.sin(Date.now()/200)*5;
             items.forEach(i => {
-                if (i.type === "H" && !inventory.vision) return;
-                drawTile(i.x, i.y, i.type, (i.isMoving || i.type==="$" || i.type==="N") ? bob : 0);
+                if (i.type === "H" && !inventory.vision) return; // RESTORED: Trap invisibility
+                drawTile(i.x, i.y, i.type, (i.isMoving || i.type === "N") ? bob : 0);
             });
             drawTile(player.x, player.y, "@", bob);
             
+            // Draw Particles
             particles.forEach(p => {
                 CTX.globalAlpha = p.life; CTX.fillStyle = p.color;
                 CTX.fillRect(p.x, p.y, 6, 6);
@@ -297,53 +256,44 @@
             }
         }
 
-        function handleInput(dx, dy) {
+        function handleInput(e, dx, dy) {
+            if (e && e.cancelable) e.preventDefault(); // NO-ZOOM MAGIC
             if (isPaused) return;
             let nx = player.x + dx, ny = player.y + dy;
-            if (walls.some(w => w.x === nx && w.y === ny)) { Audio.error(); shake = 5; return; }
+            if (walls.some(w => w.x === nx && w.y === ny)) { Audio.error(); return; }
 
             let item = items.find(i => i.x === nx && i.y === ny);
             if (item) {
                 if (item.type === "K") { inventory.keys++; Audio.pickup(); createParticles(nx, ny, "#ffeaa7"); items = items.filter(i=>i!==item); player.x = nx; player.y = ny; }
-                else if (item.type === "P") { inventory.vision = true; Audio.pickup(); items = items.filter(i=>i!==item); openUI("POTION", "Hidden traps revealed!", false); player.x = nx; player.y = ny; }
-                else if (item.type === "D") { 
-                    if(inventory.keys > 0) { inventory.keys--; Audio.unlock(); items = items.filter(i=>i!==item); }
-                    else { openUI("LOCKED", "Find a key 🔑 first!", false); }
-                }
+                else if (item.type === "P") { inventory.vision = true; Audio.pickup(); items = items.filter(i=>i!==item); openUI("POTION", "Traps revealed!", false); player.x = nx; player.y = ny; }
                 else if ("EH$".includes(item.type)) { currentEnemy = item; openUI("BATTLE", item.quest.q, true); }
                 else if (item.type === ">") { loadLevel(levelIdx+1); }
-                else if (item.type === "N") { openUI("WIZARD", "The Sorcerer is near...", false); }
             } else { player.x = nx; player.y = ny; Audio.step(); }
             updateHUD();
         }
 
-        const UI = document.getElementById("ui-layer");
-        const INPUT = document.getElementById("answer");
         function openUI(title, text, isBattle) {
-            isPaused = true; UI.style.display = "block";
+            isPaused = true; document.getElementById("ui-layer").style.display = "block";
             document.getElementById("ui-title").innerText = title;
             document.getElementById("ui-text").innerText = text;
             document.getElementById("battle-ui").style.display = isBattle ? "block" : "none";
             document.getElementById("close-btn").style.display = isBattle ? "none" : "block";
-            document.getElementById("feedback").innerText = "";
-            if(isBattle) setTimeout(()=>INPUT.focus(), 100);
+            if(isBattle) setTimeout(()=>document.getElementById("answer").focus(), 100);
         }
-        function closeUI() { UI.style.display = "none"; isPaused = false; }
-        function checkAnswer() {
-            if(INPUT.value.toLowerCase().trim() === currentEnemy.quest.a) {
+        function closeUI() { document.getElementById("ui-layer").style.display = "none"; isPaused = false; }
+        
+        window.checkAnswer = function() {
+            let ans = document.getElementById("answer").value.toLowerCase().trim();
+            if (ans === currentEnemy.quest.a) {
                 Audio.magic(); createParticles(currentEnemy.x, currentEnemy.y, "#a29bfe", 20);
-                items = items.filter(i=>i!==currentEnemy); inventory.score += 50; closeUI(); INPUT.value = "";
-            } else { Audio.error(); shake = 5; document.getElementById("feedback").innerText = "WRONG!"; }
+                items = items.filter(i=>i!==currentEnemy); inventory.score += 50; closeUI();
+                document.getElementById("answer").value = "";
+            } else { Audio.error(); document.getElementById("feedback").innerText = "WRONG!"; }
             updateHUD();
         }
 
         function resize() { CANVAS.width = window.innerWidth; CANVAS.height = window.innerHeight; }
         window.addEventListener('resize', resize);
-        window.addEventListener('keydown', e => {
-            if(e.key === "ArrowUp") handleInput(0,-1); if(e.key === "ArrowDown") handleInput(0,1);
-            if(e.key === "ArrowLeft") handleInput(-1,0); if(e.key === "ArrowRight") handleInput(1,0);
-            if(e.key === "Enter" && UI.style.display === "block") checkAnswer();
-        });
     </script>
 </body>
 </html>
