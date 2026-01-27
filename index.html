@@ -64,6 +64,27 @@
 canvas {
     touch-action: none;
 }
+        /* Add this right before </style> */
+
+html, body {
+    /* Prevents the browser from handling any zooming gestures */
+    touch-action: none; 
+    /* Specifically for Safari - stops the click delay/zoom trigger */
+    -ms-touch-action: none;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+}
+
+/* Force buttons to ignore the double-tap zoom gesture */
+#mobile-controls, .dpad-btn, #start-btn, .action-btn {
+    touch-action: manipulation;
+}
+
+/* Critical: Safari zooms automatically if font-size is under 16px */
+input {
+    font-size: 16px !important;
+}
     </style>
 </head>
 <body>
@@ -100,7 +121,29 @@ canvas {
         <button id="close-btn" class="action-btn" onclick="closeUI()" style="display:none">CONTINUE</button>
         <p id="feedback" style="color:#ff7675; font-weight:bold; margin-top:15px;"></p>
     </div>
+// 1. Prevent double-tap to zoom
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function (event) {
+    let now = (new Date()).getTime();
+    if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+    }
+    lastTouchEnd = now;
+}, false);
 
+// 2. Prevent pinch-to-zoom (multi-finger)
+document.addEventListener('touchstart', function (event) {
+    if (event.touches.length > 1) {
+        event.preventDefault();
+    }
+}, { passive: false });
+
+// 3. Block zoom gestures on move
+document.addEventListener('touchmove', function (event) {
+    if (event.scale !== 1) { 
+        event.preventDefault(); 
+    }
+}, { passive: false });
     <script>
         const TILE_SIZE = 80;
         const CANVAS = document.getElementById("gameCanvas");
