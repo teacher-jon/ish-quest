@@ -53,6 +53,17 @@
             color: white; font-size: 30px; display: flex; justify-content: center; align-items: center;
             touch-action: none; -webkit-tap-highlight-color: transparent;
         }
+        /* 1. Prevent zooming on the entire interactive area */
+#mobile-controls, .dpad-btn, #start-btn, .action-btn {
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* 2. Force the canvas to ignore double-tap gestures */
+canvas {
+    touch-action: none;
+}
     </style>
 </head>
 <body>
